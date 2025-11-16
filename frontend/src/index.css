@@ -1,0 +1,176 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #0a0a0f;
+  color: #f8fafc;
+  overflow-x: hidden;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+a {
+  color: #818cf8;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #a5b4fc;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Accessibility Features */
+:root {
+  --accessibility-font-size: 1rem;
+  --accessibility-font-size-multiplier: 1;
+}
+
+/* Font Size Adjustments */
+html {
+  font-size: calc(var(--accessibility-font-size) * var(--accessibility-font-size-multiplier));
+}
+
+body {
+  font-size: 1rem;
+}
+
+/* Apply font size multiplier to all text elements */
+[data-font-size="small"] *,
+[data-font-size="small"] {
+  font-size: calc(0.875 * var(--accessibility-font-size-multiplier, 1) * 1rem) !important;
+}
+
+[data-font-size="large"] *,
+[data-font-size="large"] {
+  font-size: calc(1.125 * var(--accessibility-font-size-multiplier, 1) * 1rem) !important;
+}
+
+[data-font-size="extra-large"] *,
+[data-font-size="extra-large"] {
+  font-size: calc(1.25 * var(--accessibility-font-size-multiplier, 1) * 1rem) !important;
+}
+
+/* High Contrast Mode - Subtle Enhancement */
+.high-contrast {
+  --contrast-bg: #0f172a;
+  --contrast-text: #f8fafc;
+  --contrast-secondary: #cbd5e1;
+  --contrast-border: #475569;
+  --contrast-primary: #6366f1;
+}
+
+/* Increase text contrast */
+.high-contrast body,
+.high-contrast p,
+.high-contrast span,
+.high-contrast div,
+.high-contrast label {
+  color: var(--contrast-text) !important;
+}
+
+.high-contrast .MuiTypography-root {
+  color: var(--contrast-text) !important;
+}
+
+/* Enhance borders and outlines */
+.high-contrast button,
+.high-contrast a,
+.high-contrast input,
+.high-contrast textarea,
+.high-contrast select {
+  border-color: var(--contrast-border) !important;
+  border-width: 1.5px !important;
+}
+
+.high-contrast .MuiButton-outlined {
+  border-color: var(--contrast-border) !important;
+  border-width: 1.5px !important;
+}
+
+/* Enhance focus indicators */
+.high-contrast *:focus-visible {
+  outline: 3px solid var(--contrast-primary) !important;
+  outline-offset: 3px !important;
+}
+
+/* Improve card and paper contrast */
+.high-contrast .MuiCard-root,
+.high-contrast .MuiPaper-root {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  border: 1px solid var(--contrast-border) !important;
+}
+
+/* Enhance link visibility */
+.high-contrast a {
+  color: var(--contrast-primary) !important;
+  text-decoration: underline !important;
+}
+
+.high-contrast a:hover {
+  color: #818cf8 !important;
+  text-decoration: underline !important;
+}
+
+/* Reduced Motion */
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Enhanced Focus Indicators */
+*:focus-visible {
+  outline: 3px solid #6366f1 !important;
+  outline-offset: 2px !important;
+  border-radius: 4px !important;
+}
+
+/* Skip to main content link */
+.skip-to-main {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #6366f1;
+  color: #ffffff;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 10000;
+  border-radius: 4px;
+}
+
+.skip-to-main:focus {
+  top: 0;
+}
