@@ -26,18 +26,25 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
+    const isProduction = process.env.NODE_ENV === 'production';
+    
     const allowedOrigins = [
-      process.env.FRONTEND_URL || 'http://localhost:5173',
+      process.env.FRONTEND_URL,
+      'https://contractiq-ivory.vercel.app',
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:5175',
       'http://localhost:3000',
-    ];
+    ].filter(Boolean); // Remove undefined values
     
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
+    } else if (!isProduction) {
+      // Allow all origins in development
+      callback(null, true);
     } else {
-      callback(null, true); // Allow all origins in development
+      // In production, only allow specified origins
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
