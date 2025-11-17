@@ -83,7 +83,11 @@ router.post(
 
         // Send email notification
         try {
-          await sendAnalysisCompleteEmail(user!.email, contract._id.toString(), contract.fileName);
+          await sendAnalysisCompleteEmail(
+            user?.email ?? '',
+            typeof contract._id === 'string' ? contract._id : contract._id?.toString?.() ?? '',
+            contract.fileName
+          );
         } catch (emailError) {
           console.error('Email notification error:', emailError);
           // Don't fail the request if email fails

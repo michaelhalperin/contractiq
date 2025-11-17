@@ -8,6 +8,15 @@ import { sendWelcomeEmail, sendPasswordChangedEmail, sendEmailChangedEmail } fro
 
 const router = express.Router();
 
+// Helper function to get and validate JWT secret
+const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.trim() === '') {
+    throw new Error('JWT_SECRET is not configured. Please set it in your .env file.');
+  }
+  return secret;
+};
+
 // Register
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -38,11 +47,10 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     await user.save();
 
     // Generate token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || '',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
+    const jwtSecret = getJwtSecret();
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const payload = { userId: String(user._id) };
+    const token = jwt.sign(payload, jwtSecret, { expiresIn } as jwt.SignOptions);
 
     // Send welcome email (don't fail registration if email fails)
     try {
@@ -93,11 +101,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Generate token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || '',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
+    const jwtSecret = getJwtSecret();
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const payload = { userId: String(user._id) };
+    const token = jwt.sign(payload, jwtSecret, { expiresIn } as jwt.SignOptions);
 
     res.json({
       token,
@@ -165,7 +172,7 @@ router.patch('/profile', authenticate, async (req: AuthRequest, res: Response): 
     if (validatedData.email !== undefined && validatedData.email !== user.email) {
       // Check if email is already taken
       const existingUser = await User.findOne({ email: validatedData.email });
-      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+      if (existingUser && existingUser._id && user._id && existingUser._id.toString() !== user._id.toString()) {
         res.status(400).json({ error: 'Email already in use' });
         return;
       }
@@ -174,7 +181,7 @@ router.patch('/profile', authenticate, async (req: AuthRequest, res: Response): 
 
     // Update password if provided
     const passwordChanged = validatedData.password && validatedData.currentPassword;
-    if (passwordChanged) {
+    if (passwordChanged && validatedData.password && validatedData.currentPassword) {
       // Verify current password
       const isValidPassword = await bcrypt.compare(validatedData.currentPassword, user.password);
       if (!isValidPassword) {

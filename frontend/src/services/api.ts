@@ -3,22 +3,23 @@ import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 // Determine API URL based on environment
 const getApiUrl = (): string => {
-  // If VITE_API_URL is explicitly set, use it
+  // VITE_API_URL should be set in .env.development or .env.production
+  // Fallback to defaults if not set
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
 
-  // Check if we're in production (deployed on Vercel)
-  const isProduction = import.meta.env.PROD
+  // Fallback: Check if we're in production mode
+  const isProduction = import.meta.env.PROD;
 
-  // Production backend URL
+  // Production backend URL (fallback)
   if (isProduction) {
     return 'https://contractiq.onrender.com/api';
   }
 
-  // Development backend URL (default)
-  // Backend runs on port 3001 by default
-  return 'http://localhost:3001/api';
+  // Development backend URL (fallback)
+  // Backend runs on port 5001 by default
+  return 'http://localhost:5001/api';
 };
 
 const API_URL = getApiUrl();

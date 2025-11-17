@@ -5,3 +5,12 @@ dist/
 .DS_Store
 uploads/
 
+
+# Environment variables (keep .env.production for reference)
+.env
+.env.local
+.env.development
+.env.production
+.env.development.local
+.env.production.local
+.env.test.local

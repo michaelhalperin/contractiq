@@ -15,7 +15,61 @@ import shareRoutes from './routes/share.routes.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
+// Load environment variables based on NODE_ENV
+const nodeEnv = process.env.NODE_ENV || 'development';
+const envFile = nodeEnv === 'production' ? '.env.production' : '.env.development';
+
+// Resolve paths - try multiple approaches for compatibility
+// When running with tsx, __dirname is src/, when compiled it's dist/
+// process.cwd() gives us the backend root when running from backend/
+let backendRoot: string;
+if (__dirname.includes('dist')) {
+  // Compiled code
+  backendRoot = path.resolve(__dirname, '../..');
+} else {
+  // Development with tsx
+  backendRoot = path.resolve(__dirname, '..');
+}
+
+const envFilePath = path.resolve(backendRoot, envFile);
+const fallbackEnvPath = path.resolve(backendRoot, '.env');
+
+// Load environment-specific file first, then fallback to .env
+// Use override: true to ensure env vars from files override any existing ones
+const envResult = dotenv.config({ path: envFilePath, override: false });
+const fallbackResult = dotenv.config({ path: fallbackEnvPath, override: false }); // Fallback
+
+// Log environment info
+console.log(`🔧 Environment: ${nodeEnv}`);
+console.log(`🔧 Loading env file: ${envFile}`);
+console.log(`🔧 Backend root: ${backendRoot}`);
+console.log(`🔧 Env file path: ${envFilePath}`);
+if (envResult.error) {
+  console.warn(`⚠️  Warning: Could not load ${envFile}:`, envResult.error.message);
+} else {
+  console.log(`✅ Loaded ${envFile} successfully`);
+}
+if (fallbackResult.error && !envResult.error) {
+  console.warn(`⚠️  Warning: Could not load .env fallback:`, fallbackResult.error.message);
+}
+
+// Validate required environment variables
+const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName] || process.env[varName]?.trim() === '');
+if (missingVars.length > 0) {
+  console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+  console.error(`   Please set these in ${envFile} or .env file`);
+  if (nodeEnv === 'production') {
+    process.exit(1);
+  } else {
+    console.warn(`⚠️  Continuing in development mode, but some features may not work`);
+  }
+} else {
+  // Debug: Show that JWT_SECRET is loaded (first 10 chars only for security)
+  const jwtSecretPreview = process.env.JWT_SECRET ? 
+    `${process.env.JWT_SECRET.substring(0, 10)}...` : 'NOT SET';
+  console.log(`✅ JWT_SECRET loaded: ${jwtSecretPreview}`);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;

@@ -15,8 +15,8 @@ export default defineConfig({
     proxy: {
       '/api': {
         // Proxy API requests to backend in development
-        // Backend default port is 3001 (or from PORT env var)
-        target: process.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001',
+        // Backend default port is 5001 (or from PORT env var)
+        target: process.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001',
         changeOrigin: true,
       },
     },
