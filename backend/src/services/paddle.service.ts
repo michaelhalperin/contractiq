@@ -152,3 +152,29 @@ export const getSubscription = async (subscriptionId: string) => {
   }
 };
 
+export const cancelSubscriptionAtPeriodEnd = async (subscriptionId: string): Promise<void> => {
+  try {
+    const response = await fetch(`${PADDLE_BASE_URL}/subscriptions/${subscriptionId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${PADDLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        scheduled_change: {
+          action: 'cancel',
+          effective_at: 'next_billing_period',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { message?: string };
+      throw new Error(error.message || 'Failed to cancel subscription');
+    }
+  } catch (error) {
+    console.error('Cancel subscription error:', error instanceof Error ? error.message : error);
+    throw error;
+  }
+};
+

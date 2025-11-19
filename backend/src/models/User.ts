@@ -12,6 +12,17 @@ export interface IUser extends Document {
   contractsUsedThisMonth: number;
   lastResetDate: Date;
   role: 'user' | 'admin';
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+  emailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
+  notificationSettings?: {
+    emailOnAnalysisComplete: boolean;
+    emailOnRiskDetected: boolean;
+    emailOnMonthlyReport: boolean;
+    emailOnLimitReached: boolean;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -61,6 +72,40 @@ const UserSchema = new Schema<IUser>(
       type: String,
       enum: ['user', 'admin'],
       default: 'user',
+    },
+    passwordResetToken: {
+      type: String,
+    },
+    passwordResetExpires: {
+      type: Date,
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+    },
+    emailVerificationExpires: {
+      type: Date,
+    },
+    notificationSettings: {
+      emailOnAnalysisComplete: {
+        type: Boolean,
+        default: true,
+      },
+      emailOnRiskDetected: {
+        type: Boolean,
+        default: true,
+      },
+      emailOnMonthlyReport: {
+        type: Boolean,
+        default: false,
+      },
+      emailOnLimitReached: {
+        type: Boolean,
+        default: true,
+      },
     },
   },
   {

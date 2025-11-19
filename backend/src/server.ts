@@ -11,6 +11,8 @@ import contractRoutes from './routes/contract.routes.js';
 import subscriptionRoutes from './routes/subscription.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import shareRoutes from './routes/share.routes.js';
+import contactRoutes from './routes/contact.routes.js';
+import { requestLogger } from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -119,6 +121,9 @@ app.use(express.urlencoded({ extended: true }));
 // Serve uploaded files (for development - local storage)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Request logging middleware (after static files, before routes)
+app.use(requestLogger);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -137,6 +142,7 @@ app.use('/api/contracts', contractRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/share', shareRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

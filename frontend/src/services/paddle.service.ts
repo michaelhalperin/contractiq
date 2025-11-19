@@ -92,14 +92,6 @@ export const initializePaddle = (): Promise<void> => {
       return;
     }
 
-    // Debug: Log token format (first few chars only for security)
-    console.log("Paddle client key format check:", {
-      startsWithTest: clientKey.startsWith("test_"),
-      startsWithLive: clientKey.startsWith("live_"),
-      length: clientKey.length,
-      preview: clientKey.substring(0, 10) + "...",
-    });
-
     const env =
       import.meta.env.VITE_PADDLE_ENVIRONMENT ||
       import.meta.env.PADDLE_ENVIRONMENT ||
@@ -118,12 +110,6 @@ export const initializePaddle = (): Promise<void> => {
       const hasSetup = typeof window.Paddle.Setup === "function";
       const hasEnvironment = typeof window.Paddle.Environment !== "undefined";
 
-      console.log("Paddle API available:", {
-        hasInitialize,
-        hasSetup,
-        hasEnvironment,
-      });
-
       // Set environment if sandbox (only for Billing)
       if (
         hasEnvironment &&
@@ -141,18 +127,7 @@ export const initializePaddle = (): Promise<void> => {
         // Paddle Billing - use Initialize()
         window.Paddle.Initialize({
           token: clientKey,
-          eventCallback: (data: any) => {
-            // Log important events for debugging
-            if (
-              data.name === "checkout.loaded" ||
-              data.name === "checkout.completed" ||
-              data.name === "checkout.error"
-            ) {
-              console.log("Paddle event:", data);
-            }
-          },
         });
-        console.log("Paddle Billing initialized with Initialize()");
       } else if (hasSetup) {
         // Paddle Classic - Setup() requires vendor ID, not token
         // This shouldn't happen if using Billing, but handle it gracefully
@@ -167,8 +142,6 @@ export const initializePaddle = (): Promise<void> => {
           "Paddle.js is loaded but neither Initialize() nor Setup() methods are available"
         );
       }
-
-      console.log("Paddle initialized successfully");
       resolve();
     } catch (error) {
       reject(

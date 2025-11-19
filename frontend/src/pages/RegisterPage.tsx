@@ -9,7 +9,7 @@ import {
   Paper,
   Alert,
 } from '@mui/material';
-import { Description } from '@mui/icons-material';
+import { Description, ArrowBack } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -49,7 +49,16 @@ const RegisterPage = () => {
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      // Extract error message from axios error response
+      let errorMessage = 'Registration failed';
+      
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { data?: { error?: string } } };
+        errorMessage = axiosError.response?.data?.error || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       toast.error(errorMessage);
     }
@@ -87,6 +96,21 @@ const RegisterPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={() => navigate('/')}
+            sx={{
+              mb: 3,
+              color: 'text.secondary',
+              textTransform: 'none',
+              '&:hover': {
+                color: 'primary.main',
+                background: 'rgba(99, 102, 241, 0.1)',
+              },
+            }}
+          >
+            Back to Home
+          </Button>
           <Paper
             elevation={0}
             sx={{

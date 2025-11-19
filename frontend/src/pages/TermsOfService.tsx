@@ -158,7 +158,7 @@ const TermsOfService = () => {
                   content={
                     <>
                       <Typography variant="body1" color="text.secondary" paragraph>
-                        <strong>General Policy:</strong> All subscription fees are non-refundable except as required by applicable law or as explicitly stated in this policy.
+                        <strong>14-Day Money-Back Guarantee:</strong> We offer a 14-day money-back guarantee for all new subscriptions. If you are not satisfied with ContractIQ for any reason, you may request a full refund within 14 days of your initial purchase date. This guarantee applies to your first subscription payment only.
                       </Typography>
                       <Typography variant="body1" color="text.secondary" paragraph>
                         <strong>Subscription Cancellation:</strong> You may cancel your subscription at any time. Cancellation will take effect at the end of your current billing period. You will continue to have access to the Service until the end of the billing period for which you have already paid.
@@ -167,18 +167,28 @@ const TermsOfService = () => {
                         <strong>Refund Eligibility:</strong> Refunds may be considered in the following circumstances:
                       </Typography>
                       <Typography component="ul" variant="body1" color="text.secondary" sx={{ pl: 3, mb: 2 }}>
-                        <li>Technical issues that prevent you from using the Service, provided you contact us within 7 days of your purchase</li>
-                        <li>Duplicate charges or billing errors</li>
+                        <li>Requests made within 14 days of the initial purchase date (full refund)</li>
+                        <li>Technical issues that prevent you from using the Service, provided you contact us within 14 days of your purchase</li>
+                        <li>Duplicate charges or billing errors (full refund regardless of timing)</li>
                         <li>As required by applicable consumer protection laws in your jurisdiction</li>
                       </Typography>
                       <Typography variant="body1" color="text.secondary" paragraph>
-                        <strong>Refund Requests:</strong> To request a refund, please contact us at legal@contractiq.com with your account information and the reason for your refund request. We will review your request and respond within 5-7 business days.
+                        <strong>Refund Requests:</strong> To request a refund, please contact us at legal@contractiq.com with your account information, order number, and the reason for your refund request. We will review your request and respond within 5-7 business days.
                       </Typography>
                       <Typography variant="body1" color="text.secondary" paragraph>
-                        <strong>Processing Time:</strong> If your refund request is approved, refunds will be processed to the original payment method within 10-14 business days.
+                        <strong>Processing Time:</strong> If your refund request is approved, refunds will be processed to the original payment method within 10-14 business days. The refund will appear on your statement within 1-2 billing cycles depending on your payment provider.
                       </Typography>
                       <Typography variant="body1" color="text.secondary" paragraph>
-                        <strong>No Refunds For:</strong> We do not provide refunds for partial billing periods, unused features, or if you simply change your mind after the 7-day period has elapsed.
+                        <strong>No Refunds For:</strong> We do not provide refunds for:
+                      </Typography>
+                      <Typography component="ul" variant="body1" color="text.secondary" sx={{ pl: 3, mb: 2 }}>
+                        <li>Requests made after the 14-day guarantee period has elapsed (except for billing errors)</li>
+                        <li>Partial billing periods or unused features</li>
+                        <li>Renewal payments (the 14-day guarantee applies only to initial purchases)</li>
+                        <li>Accounts that have been terminated for violation of our Terms of Service</li>
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary" paragraph>
+                        <strong>Payment Processor:</strong> All payments are processed through Paddle, our payment service provider. Refund requests are subject to Paddle's Buyer Terms, which include a minimum 14-day refund policy. This policy aligns with Paddle's requirements and applicable consumer protection laws.
                       </Typography>
                     </>
                   }

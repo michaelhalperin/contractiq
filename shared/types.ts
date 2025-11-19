@@ -10,19 +10,66 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
   free: {
     contractsPerMonth: 2,
-    features: ['Basic analysis', 'PDF reports']
+    features: [
+      'Basic AI analysis',
+      'Standard PDF reports',
+      'Up to 5MB file size',
+      'Basic risk detection',
+      'Email support (48h response)',
+      '7-day contract history'
+    ]
   },
   pro: {
     contractsPerMonth: 10,
-    features: ['Advanced analysis', 'PDF reports', 'Email support']
+    features: [
+      'Advanced AI analysis',
+      'Enhanced PDF reports',
+      'Up to 25MB file size',
+      'Advanced risk detection',
+      'Priority email support (24h response)',
+      '30-day contract history',
+      'Export to Word & Excel',
+      'Detailed clause explanations',
+      'Contract comparison tool'
+    ]
   },
   business: {
     contractsPerMonth: 50,
-    features: ['Advanced analysis', 'PDF reports', 'Priority support', 'Team collaboration']
+    features: [
+      'Premium AI analysis with deep insights',
+      'Professional branded PDF reports',
+      'Up to 100MB file size',
+      'AI-powered risk scoring & recommendations',
+      'Priority support (12h response)',
+      'Unlimited contract history',
+      'Export to Word, Excel, CSV & JSON',
+      'Advanced clause analysis & suggestions',
+      'Bulk contract processing',
+      'Advanced analytics dashboard',
+      'Custom notification settings'
+    ]
   },
   enterprise: {
     contractsPerMonth: -1, // unlimited
-    features: ['Advanced analysis', 'PDF reports', 'Dedicated support', 'Team collaboration', 'Custom integrations']
+    features: [
+      'Premium AI analysis with deep insights',
+      'Professional branded PDF reports',
+      'Unlimited file size',
+      'AI-powered risk scoring & recommendations',
+      'Dedicated account manager',
+      'Unlimited contract history',
+      'Export to Word, Excel, CSV & JSON',
+      'Advanced clause analysis & suggestions',
+      'Bulk contract processing',
+      'Custom contract templates',
+      'API access for integrations',
+      'Advanced analytics dashboard',
+      'Team collaboration (unlimited members)',
+      'Custom notification settings',
+      'Custom integrations',
+      'SLA guarantee',
+      'On-premise deployment option'
+    ]
   }
 };
 
@@ -60,6 +107,79 @@ export interface ContractAnalysis {
   obligations: string[];
   riskFlags: RiskFlag[];
   clauseExplanations: ClauseExplanation[];
+  // Enhanced structured data
+  dates?: {
+    startDate?: string;
+    endDate?: string;
+    signingDate?: string;
+    effectiveDate?: string;
+  };
+  financialDetails?: {
+    totalValue?: string;
+    currency?: string;
+    paymentAmounts?: Array<{
+      amount: string;
+      schedule: string;
+      dueDate?: string;
+    }>;
+  };
+  legalInfo?: {
+    governingLaw?: string;
+    jurisdiction?: string;
+    disputeResolution?: string;
+    venue?: string;
+  };
+  contractMetadata?: {
+    contractType?: string;
+    category?: string;
+    signatories?: Array<{
+      name: string;
+      title?: string;
+      role?: string;
+      party: string;
+    }>;
+  };
+  structuredTerms?: {
+    renewal?: {
+      autoRenewal: boolean;
+      noticePeriod?: string;
+      renewalTerm?: string;
+      conditions?: string;
+    };
+    termination?: {
+      noticePeriod?: string;
+      terminationFees?: string;
+      conditions?: string[];
+    };
+    intellectualProperty?: {
+      ownership?: string;
+      licensing?: string;
+      restrictions?: string;
+    };
+    confidentiality?: {
+      scope?: string;
+      duration?: string;
+      exceptions?: string[];
+    };
+    forceMajeure?: {
+      definition?: string;
+      consequences?: string;
+    };
+    insurance?: {
+      requirements?: string[];
+      minimumCoverage?: string;
+    };
+  };
+  performanceMetrics?: {
+    slas?: string[];
+    kpis?: string[];
+    deliverables?: string[];
+    milestones?: Array<{
+      name: string;
+      date?: string;
+      description?: string;
+    }>;
+  };
   metadata: {
     totalClauses: number;
     analyzedAt: string;

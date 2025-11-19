@@ -19,6 +19,7 @@ export interface User {
   subscriptionStatus: string;
   contractsUsedThisMonth?: number;
   role?: string;
+  emailVerified?: boolean;
 }
 
 export interface AuthResponse {
@@ -56,6 +57,48 @@ export const authService = {
   logout: (): void => {
     localStorage.removeItem('token');
     window.location.href = '/login';
+  },
+
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, password: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>('/auth/reset-password/' + token, { password });
+    return response.data;
+  },
+
+  verifyEmail: async (token: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>('/auth/verify-email/' + token);
+    return response.data;
+  },
+
+  resendVerification: async (): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>('/auth/resend-verification');
+    return response.data;
+  },
+
+  deleteAccount: async (password?: string): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>('/auth/account', {
+      data: password ? { password } : {},
+    });
+    return response.data;
+  },
+
+  getNotificationSettings: async (): Promise<{ notificationSettings: any }> => {
+    const response = await api.get<{ notificationSettings: any }>('/auth/notifications');
+    return response.data;
+  },
+
+  updateNotificationSettings: async (settings: {
+    emailOnAnalysisComplete?: boolean;
+    emailOnRiskDetected?: boolean;
+    emailOnMonthlyReport?: boolean;
+    emailOnLimitReached?: boolean;
+  }): Promise<{ notificationSettings: any }> => {
+    const response = await api.patch<{ notificationSettings: any }>('/auth/notifications', settings);
+    return response.data;
   },
 };
 

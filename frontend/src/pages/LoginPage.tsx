@@ -9,7 +9,7 @@ import {
   Paper,
   Alert,
 } from '@mui/material';
-import { Description } from '@mui/icons-material';
+import { Description, ArrowBack } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -44,7 +44,16 @@ const LoginPage = () => {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      // Extract error message from axios error response
+      let errorMessage = 'Login failed';
+      
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { data?: { error?: string } } };
+        errorMessage = axiosError.response?.data?.error || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       toast.error(errorMessage);
     }
@@ -82,6 +91,21 @@ const LoginPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={() => navigate('/')}
+            sx={{
+              mb: 3,
+              color: 'text.secondary',
+              textTransform: 'none',
+              '&:hover': {
+                color: 'primary.main',
+                background: 'rgba(99, 102, 241, 0.1)',
+              },
+            }}
+          >
+            Back to Home
+          </Button>
           <Paper
             elevation={0}
             sx={{
@@ -158,6 +182,23 @@ const LoginPage = () => {
                 sx={{ mb: 3 }}
                 autoComplete="current-password"
               />
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <Button
+                  component={Link}
+                  to="/forgot-password"
+                  size="small"
+                  sx={{
+                    color: 'text.secondary',
+                    textTransform: 'none',
+                    '&:hover': {
+                      color: 'primary.main',
+                      background: 'rgba(99, 102, 241, 0.1)',
+                    },
+                  }}
+                >
+                  Forgot Password?
+                </Button>
+              </Box>
               <Button
                 type="submit"
                 variant="contained"

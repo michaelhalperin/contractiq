@@ -15,6 +15,13 @@ import {
   InputAdornment,
   IconButton,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -30,11 +37,15 @@ import {
   Info,
   CreditCard,
   ArrowForward,
+  Warning,
+  Delete,
+  Notifications,
 } from '@mui/icons-material';
 import { useAuthStore } from '../store/authStore';
 import { authService } from '../services/auth.service';
 import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ProfileSkeleton } from '../components/LoadingSkeleton';
 
 const ProfileSettingsPage = () => {
   const navigate = useNavigate();
@@ -49,12 +60,45 @@ const ProfileSettingsPage = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmDialogOpen, setDeleteConfirmDialogOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailOnAnalysisComplete: true,
+    emailOnRiskDetected: true,
+    emailOnMonthlyReport: false,
+    emailOnLimitReached: true,
+  });
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
   useEffect(() => {
     if (user) {
       setName(user.name || '');
       setEmail(user.email);
     }
+  }, [user]);
+
+  // Fetch notification settings for Business+ users
+  useEffect(() => {
+    const fetchNotificationSettings = async () => {
+      if (user && (user.subscriptionPlan === 'business' || user.subscriptionPlan === 'enterprise')) {
+        setIsLoadingNotifications(true);
+        try {
+          const response = await authService.getNotificationSettings();
+          setNotificationSettings(response.notificationSettings);
+        } catch (error: any) {
+          // If 403, user doesn't have access (shouldn't happen, but handle gracefully)
+          if (error.response?.status !== 403) {
+            console.error('Failed to fetch notification settings:', error);
+          }
+        } finally {
+          setIsLoadingNotifications(false);
+        }
+      }
+    };
+    fetchNotificationSettings();
   }, [user]);
 
   const updateProfileMutation = useMutation({
@@ -74,6 +118,26 @@ const ProfileSettingsPage = () => {
       toast.error(error.response?.data?.error || 'Failed to update profile');
     },
   });
+
+  const updateNotificationSettingsMutation = useMutation({
+    mutationFn: async (settings: typeof notificationSettings) => {
+      const response = await authService.updateNotificationSettings(settings);
+      return response;
+    },
+    onSuccess: (data) => {
+      setNotificationSettings(data.notificationSettings);
+      toast.success('Notification settings updated');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to update notification settings');
+    },
+  });
+
+  const handleNotificationChange = (key: keyof typeof notificationSettings, value: boolean) => {
+    const newSettings = { ...notificationSettings, [key]: value };
+    setNotificationSettings(newSettings);
+    updateNotificationSettingsMutation.mutate(newSettings);
+  };
 
   const handleUpdateProfile = () => {
     if (!name.trim()) {
@@ -127,9 +191,7 @@ const ProfileSettingsPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', background: '#0a0a0f', position: 'relative' }}>
         <Container maxWidth="md" sx={{ py: 4, position: 'relative', zIndex: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-            <CircularProgress sx={{ color: 'primary.main' }} />
-          </Box>
+          <ProfileSkeleton />
         </Container>
       </Box>
     );
@@ -363,6 +425,73 @@ const ProfileSettingsPage = () => {
                       },
                     }}
                   />
+                  {user.emailVerified === false && (
+                    <Box
+                      sx={{
+                        p: 2,
+                        background: 'rgba(251, 191, 36, 0.1)',
+                        border: '1px solid rgba(251, 191, 36, 0.3)',
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                      }}
+                    >
+                      <Warning sx={{ color: '#fbbf24', fontSize: 20 }} />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" sx={{ color: '#fbbf24', fontWeight: 600, mb: 0.5 }}>
+                          Email Not Verified
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          Please verify your email address to access all features.
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={async () => {
+                          try {
+                            setIsResendingVerification(true);
+                            await authService.resendVerification();
+                            toast.success('Verification email sent! Check your inbox.');
+                          } catch (err: any) {
+                            toast.error(err.response?.data?.error || 'Failed to resend verification email');
+                          } finally {
+                            setIsResendingVerification(false);
+                          }
+                        }}
+                        disabled={isResendingVerification}
+                        sx={{
+                          borderColor: 'rgba(251, 191, 36, 0.5)',
+                          color: '#fbbf24',
+                          '&:hover': {
+                            borderColor: '#fbbf24',
+                            background: 'rgba(251, 191, 36, 0.1)',
+                          },
+                        }}
+                      >
+                        {isResendingVerification ? 'Sending...' : 'Resend'}
+                      </Button>
+                    </Box>
+                  )}
+                  {user.emailVerified === true && (
+                    <Box
+                      sx={{
+                        p: 2,
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                      }}
+                    >
+                      <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                      <Typography variant="body2" sx={{ color: '#10b981', fontWeight: 600 }}>
+                        Email Verified
+                      </Typography>
+                    </Box>
+                  )}
                 </Stack>
               </CardContent>
             </Card>
@@ -692,8 +821,173 @@ const ProfileSettingsPage = () => {
           </CardContent>
         </Card>
 
+        {/* Notification Settings (Business+ only) */}
+        {(user?.subscriptionPlan === 'business' || user?.subscriptionPlan === 'enterprise') && (
+          <Card
+            sx={{
+              background: 'rgba(15, 23, 42, 0.6)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(148, 163, 184, 0.1)',
+              borderRadius: 3,
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              mb: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)',
+                borderColor: 'rgba(99, 102, 241, 0.3)',
+              },
+            }}
+          >
+            <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  mb: 3,
+                  pb: 2,
+                  borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Notifications sx={{ color: '#fff', fontSize: 20 }} />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
+                  Notification Settings
+                </Typography>
+              </Box>
+              {isLoadingNotifications ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress size={32} />
+                </Box>
+              ) : (
+                <Stack spacing={2.5}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={notificationSettings.emailOnAnalysisComplete}
+                        onChange={(e) => handleNotificationChange('emailOnAnalysisComplete', e.target.checked)}
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: '#6366f1',
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: '#6366f1',
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.5 }}>
+                          Email on Analysis Complete
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Receive an email when contract analysis is finished
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={notificationSettings.emailOnRiskDetected}
+                        onChange={(e) => handleNotificationChange('emailOnRiskDetected', e.target.checked)}
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: '#6366f1',
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: '#6366f1',
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.5 }}>
+                          Email on Risk Detected
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Get notified when high-risk clauses are found
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={notificationSettings.emailOnMonthlyReport}
+                        onChange={(e) => handleNotificationChange('emailOnMonthlyReport', e.target.checked)}
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: '#6366f1',
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: '#6366f1',
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.5 }}>
+                          Monthly Report
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Receive a monthly summary of your contract activity
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={notificationSettings.emailOnLimitReached}
+                        onChange={(e) => handleNotificationChange('emailOnLimitReached', e.target.checked)}
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: '#6366f1',
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: '#6366f1',
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.5 }}>
+                          Email on Limit Reached
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Get notified when you reach your monthly contract limit
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ m: 0 }}
+                  />
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Save Button */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, flexWrap: 'wrap', mb: 6 }}>
           <Button
             variant="outlined"
             onClick={() => navigate('/dashboard')}
@@ -743,6 +1037,267 @@ const ProfileSettingsPage = () => {
             {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
           </Button>
         </Box>
+
+        {/* Divider */}
+        <Box
+          sx={{
+            my: 6,
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.2) 50%, transparent 100%)',
+          }}
+        />
+
+        {/* Account Deletion Section */}
+        <Card
+          sx={{
+            background: 'rgba(239, 68, 68, 0.08)',
+            backdropFilter: 'blur(20px)',
+            border: '2px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: 3,
+            boxShadow: '0 8px 32px rgba(239, 68, 68, 0.15)',
+            mb: 4,
+            overflow: 'hidden',
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)',
+            },
+          }}
+        >
+          <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 2,
+                mb: 3,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                }}
+              >
+                <Delete sx={{ color: '#ef4444', fontSize: 24 }} />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.25rem', color: '#ef4444', mb: 1 }}>
+                  Delete Account
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                  Once you delete your account, there is no going back. Please be certain. All your contracts, analysis results, and data will be permanently deleted.
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 2, borderTop: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<Delete />}
+                onClick={() => setDeleteConfirmDialogOpen(true)}
+                sx={{
+                  borderColor: 'rgba(239, 68, 68, 0.5)',
+                  color: '#ef4444',
+                  px: 3,
+                  py: 1,
+                  fontWeight: 600,
+                  '&:hover': {
+                    borderColor: '#ef4444',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Delete My Account
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Delete Confirmation Modal */}
+        <Dialog
+          open={deleteConfirmDialogOpen}
+          onClose={() => setDeleteConfirmDialogOpen(false)}
+          PaperProps={{
+            sx: {
+              background: 'rgba(15, 23, 42, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: 3,
+              maxWidth: 500,
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              color: '#ef4444',
+              fontWeight: 700,
+              pb: 2,
+            }}
+          >
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                background: 'rgba(239, 68, 68, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Warning sx={{ color: '#ef4444', fontSize: 24 }} />
+            </Box>
+            Confirm Account Deletion
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ color: 'text.secondary', mb: 2, lineHeight: 1.7 }}>
+              Are you sure you want to delete your account? This action cannot be undone.
+            </DialogContentText>
+            <Box
+              sx={{
+                p: 2,
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: 2,
+                mb: 2,
+              }}
+            >
+              <Typography variant="body2" sx={{ color: '#ef4444', fontWeight: 600, mb: 1 }}>
+                This will permanently delete:
+              </Typography>
+              <Typography variant="body2" color="text.secondary" component="ul" sx={{ pl: 2, m: 0 }}>
+                <li>All your contracts and analysis results</li>
+                <li>Your account data and preferences</li>
+                <li>Your subscription information</li>
+                <li>All associated files and documents</li>
+              </Typography>
+            </Box>
+            <DialogContentText sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+              If you're sure, click "Continue" to proceed with password verification.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ p: 3, pt: 2 }}>
+            <Button
+              onClick={() => setDeleteConfirmDialogOpen(false)}
+              sx={{
+                color: 'text.secondary',
+                '&:hover': {
+                  background: 'rgba(148, 163, 184, 0.1)',
+                },
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setDeleteConfirmDialogOpen(false);
+                setDeleteDialogOpen(true);
+              }}
+              variant="contained"
+              color="error"
+              sx={{
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                },
+              }}
+            >
+              Continue
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Account Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => {
+            setDeleteDialogOpen(false);
+            setDeletePassword('');
+          }}
+          PaperProps={{
+            sx: {
+              background: 'rgba(15, 23, 42, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+            },
+          }}
+        >
+          <DialogTitle sx={{ color: '#ef4444', fontWeight: 700 }}>
+            Delete Account
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ color: 'text.secondary', mb: 2 }}>
+              This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Enter your password to confirm"
+              type="password"
+              fullWidth
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  background: 'rgba(99, 102, 241, 0.05)',
+                },
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setDeletePassword('');
+              }}
+              sx={{ color: 'text.secondary' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  setIsDeleting(true);
+                  await authService.deleteAccount(deletePassword);
+                  toast.success('Account deleted successfully');
+                  useAuthStore.getState().logout();
+                  window.location.href = '/';
+                } catch (err: any) {
+                  toast.error(err.response?.data?.error || 'Failed to delete account');
+                } finally {
+                  setIsDeleting(false);
+                  setDeleteDialogOpen(false);
+                  setDeletePassword('');
+                }
+              }}
+              color="error"
+              variant="contained"
+              disabled={!deletePassword || isDeleting}
+              startIcon={isDeleting ? <CircularProgress size={16} /> : <Delete />}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Account'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Legal Links Footer */}
         <Box
@@ -798,6 +1353,31 @@ const ProfileSettingsPage = () => {
             }}
           >
             Terms of Service
+          </Button>
+          <Box
+            sx={{
+              width: '4px',
+              height: '4px',
+              borderRadius: '50%',
+              background: 'rgba(148, 163, 184, 0.3)',
+            }}
+          />
+          <Button
+            component={Link}
+            to="/contact"
+            variant="text"
+            size="small"
+            sx={{
+              color: 'text.secondary',
+              fontSize: '0.875rem',
+              '&:hover': {
+                color: 'primary.main',
+                background: 'rgba(99, 102, 241, 0.1)',
+              },
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Contact
           </Button>
         </Box>
       </Container>

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { contractService } from '../services/contract.service';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 
 interface UploadZoneProps {
   onUploadComplete?: (contractId: string) => void;
@@ -15,6 +16,23 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+
+  // Get max file size based on plan
+  const getMaxFileSize = () => {
+    if (!user) return 5 * 1024 * 1024; // Default to free plan
+    const plan = user.subscriptionPlan;
+    if (plan === 'enterprise') return Infinity;
+    if (plan === 'business') return 100 * 1024 * 1024;
+    if (plan === 'pro') return 25 * 1024 * 1024;
+    return 5 * 1024 * 1024; // free
+  };
+
+  const getMaxFileSizeMB = () => {
+    const maxBytes = getMaxFileSize();
+    if (maxBytes === Infinity) return 'Unlimited';
+    return `${maxBytes / (1024 * 1024)}MB`;
+  };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -27,9 +45,10 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
       return;
     }
 
-    // Validate file size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
+    // Validate file size based on plan
+    const maxFileSize = getMaxFileSize();
+    if (file.size > maxFileSize) {
+      toast.error(`File size exceeds your plan limit (${getMaxFileSizeMB()})`);
       return;
     }
 
@@ -291,7 +310,7 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
                   display: 'block',
                 }}
               >
-                Maximum file size: 10MB
+                Maximum file size: {getMaxFileSizeMB()}
               </Typography>
             </motion.div>
           )}

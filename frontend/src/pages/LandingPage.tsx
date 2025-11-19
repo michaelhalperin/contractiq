@@ -13,6 +13,9 @@ import {
   Toolbar,
   Menu,
   MenuItem,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
 import {
   AutoAwesome,
@@ -34,9 +37,11 @@ import {
   TrendingUp,
   AccessTime,
   Menu as MenuIcon,
+  ExpandMore,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "../store/authStore";
+import SEOHead from "../components/SEOHead";
 
 const LandingPage = () => {
   const { isAuthenticated } = useAuthStore();
@@ -215,7 +220,13 @@ const LandingPage = () => {
   ];
 
   return (
-    <Box
+    <>
+      <SEOHead
+        title="ContractIQ - AI Contract Analyzer | Understand Contracts in 60 Seconds"
+        description="AI-powered contract analysis platform. Upload PDF or DOCX contracts and get instant analysis, risk detection, and plain English explanations. No lawyer needed."
+        url="/"
+      />
+      <Box
       sx={{
         minHeight: "100vh",
         background: "#0a0a0f",
@@ -1902,6 +1913,143 @@ const LandingPage = () => {
         </Container>
       </Box>
 
+      {/* FAQ Section */}
+      <Box
+        component="section"
+        id="faq"
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          py: { xs: 8, md: 12 },
+          background: "rgba(10, 10, 15, 0.5)",
+        }}
+      >
+        <Container maxWidth="lg">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <Box sx={{ textAlign: "center", mb: 6 }}>
+              <Typography
+                variant="h2"
+                sx={{
+                  fontWeight: 800,
+                  mb: 2,
+                  fontSize: { xs: "2rem", md: "3rem" },
+                  background:
+                    "linear-gradient(135deg, #6366f1 0%, #ec4899 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Frequently Asked Questions
+              </Typography>
+              <Typography
+                variant="body1"
+                color="text.secondary"
+                sx={{ maxWidth: 600, mx: "auto" }}
+              >
+                Everything you need to know about ContractIQ
+              </Typography>
+            </Box>
+
+            <Box sx={{ maxWidth: 800, mx: "auto" }}>
+              {[
+                {
+                  question: "How does ContractIQ work?",
+                  answer:
+                    "Simply upload your contract (PDF, DOCX, or TXT), and our AI analyzes it in seconds. You'll get a comprehensive summary, risk flags, key obligations, and plain English explanations of complex legal clauses.",
+                },
+                {
+                  question: "What file types are supported?",
+                  answer:
+                    "ContractIQ supports PDF, DOCX (Word), and TXT file formats. We're continuously working to add support for more formats.",
+                },
+                {
+                  question: "How accurate is the analysis?",
+                  answer:
+                    "Our AI uses advanced natural language processing and is trained on thousands of legal documents. While we aim for high accuracy, our analysis is meant to assist you, not replace professional legal advice.",
+                },
+                {
+                  question: "Is my data secure?",
+                  answer:
+                    "Absolutely. We use industry-standard encryption, secure cloud storage, and never share your contracts with third parties. Your data is private and protected.",
+                },
+                {
+                  question: "What subscription plans are available?",
+                  answer:
+                    "We offer Free, Pro, Business, and Enterprise plans. Each plan has different limits on contracts per month and access to advanced features. Check our pricing page for details.",
+                },
+                {
+                  question: "Can I cancel my subscription anytime?",
+                  answer:
+                    "Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your current billing period.",
+                },
+                {
+                  question: "Do you offer refunds?",
+                  answer:
+                    "Refunds may be considered for technical issues within 7 days of purchase, duplicate charges, or as required by law. See our Terms of Service for full refund policy details.",
+                },
+                {
+                  question: "Can I share analysis reports with my team?",
+                  answer:
+                    "Yes! ContractIQ allows you to generate shareable links and PDF reports of your contract analysis, making it easy to collaborate with your team.",
+                },
+              ].map((faq, index) => (
+                <Accordion
+                  key={index}
+                  sx={{
+                    background: "rgba(15, 23, 42, 0.6)",
+                    backdropFilter: "blur(20px)",
+                    border: "1px solid rgba(148, 163, 184, 0.1)",
+                    borderRadius: 2,
+                    mb: 2,
+                    "&:before": { display: "none" },
+                    "&.Mui-expanded": {
+                      margin: "0 0 16px 0",
+                    },
+                  }}
+                >
+                  <AccordionSummary
+                    expandIcon={
+                      <ExpandMore sx={{ color: "primary.main" }} />
+                    }
+                    sx={{
+                      px: 3,
+                      py: 2,
+                      "& .MuiAccordionSummary-content": {
+                        my: 1,
+                      },
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: { xs: "1rem", md: "1.125rem" },
+                      }}
+                    >
+                      {faq.question}
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ px: 3, pb: 3 }}>
+                    <Typography
+                      variant="body1"
+                      color="text.secondary"
+                      sx={{ lineHeight: 1.7 }}
+                    >
+                      {faq.answer}
+                    </Typography>
+                  </AccordionDetails>
+                </Accordion>
+              ))}
+            </Box>
+          </motion.div>
+        </Container>
+      </Box>
+
       {/* Footer */}
       <Box
         component="footer"
@@ -2031,6 +2179,23 @@ const LandingPage = () => {
                   }}
                 >
                   Terms
+                </Button>
+                <Button
+                  component={Link}
+                  to="/contact"
+                  variant="text"
+                  size="small"
+                  color="inherit"
+                  sx={{
+                    justifyContent: "flex-start",
+                    fontSize: "0.875rem",
+                    color: "text.secondary",
+                    "&:hover": {
+                      color: "text.primary",
+                    },
+                  }}
+                >
+                  Contact
                 </Button>
               </Stack>
             </Grid>
@@ -2173,6 +2338,7 @@ const LandingPage = () => {
         </Container>
       </Box>
     </Box>
+    </>
   );
 };
 

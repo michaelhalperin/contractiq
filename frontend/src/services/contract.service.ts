@@ -39,5 +39,36 @@ export const contractService = {
   deleteContract: async (id: string): Promise<void> => {
     await api.delete(`/contracts/${id}`);
   },
+
+  exportContract: async (id: string, format: 'pdf' | 'word' | 'excel' | 'csv' | 'json'): Promise<Blob> => {
+    const response = await api.get(`/contracts/${id}/export/${format}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  compareContracts: async (contractIds: string[]): Promise<any> => {
+    const response = await api.post('/contracts/compare', { contractIds });
+    return response.data;
+  },
+
+  bulkUpload: async (files: File[]): Promise<any> => {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+
+    const response = await api.post('/contracts/bulk-upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  getAnalytics: async (): Promise<any> => {
+    const response = await api.get('/contracts/analytics/overview');
+    return response.data;
+  },
 };
 

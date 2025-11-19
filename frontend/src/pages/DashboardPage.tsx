@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -16,7 +16,6 @@ import {
   Menu,
   MenuItem,
   Divider,
-  Skeleton,
   Tooltip,
   LinearProgress,
   Stack,
@@ -28,7 +27,8 @@ import {
   DialogContentText,
   DialogActions,
   CircularProgress,
-} from '@mui/material';
+  Checkbox,
+} from "@mui/material";
 import {
   Upload,
   Description,
@@ -44,43 +44,60 @@ import {
   Visibility,
   Delete,
   Add,
-} from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuthStore } from '../store/authStore';
-import { contractService } from '../services/contract.service';
-import { useQuery } from '@tanstack/react-query';
-import UploadZone from '../components/UploadZone';
-import toast from 'react-hot-toast';
+  CompareArrows,
+} from "@mui/icons-material";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuthStore } from "../store/authStore";
+import { contractService } from "../services/contract.service";
+import { useQuery } from "@tanstack/react-query";
+import UploadZone from "../components/UploadZone";
+import toast from "react-hot-toast";
+import { DashboardSkeleton } from "../components/LoadingSkeleton";
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [showUpload, setShowUpload] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'name' | 'status'>('date');
-  const [contractMenuAnchor, setContractMenuAnchor] = useState<{ el: HTMLElement; id: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"date" | "name" | "status">("date");
+  const [contractMenuAnchor, setContractMenuAnchor] = useState<{
+    el: HTMLElement;
+    id: string;
+  } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
-  const [viewMode, setViewMode] = useState<'all' | 'completed' | 'processing'>('all');
+  const [viewMode, setViewMode] = useState<"all" | "completed" | "processing" | "analytics">(
+    "all"
+  );
   const lastScrollY = useRef(0);
+  const [bulkUploadFiles, setBulkUploadFiles] = useState<File[]>([]);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [selectedContracts, setSelectedContracts] = useState<Set<string>>(new Set());
+  
+  // Check if user has comparison feature (Pro+)
+  const hasComparison = user?.subscriptionPlan === 'pro' || 
+                        user?.subscriptionPlan === 'business' || 
+                        user?.subscriptionPlan === 'enterprise';
 
   // Keyboard shortcut for search (Cmd/Ctrl + K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+        const searchInput = document.querySelector(
+          'input[placeholder*="Search"]'
+        ) as HTMLInputElement;
         searchInput?.focus();
       }
-      if (e.key === 'Escape') {
-        setSearchQuery('');
+      if (e.key === "Escape") {
+        setSearchQuery("");
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Hide/show header on scroll
@@ -96,8 +113,8 @@ const DashboardPage = () => {
       }
       lastScrollY.current = currentScrollY;
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -108,7 +125,10 @@ const DashboardPage = () => {
     setAnchorEl(null);
   };
 
-  const handleContractMenuOpen = (event: React.MouseEvent<HTMLElement>, contractId: string) => {
+  const handleContractMenuOpen = (
+    event: React.MouseEvent<HTMLElement>,
+    contractId: string
+  ) => {
     event.stopPropagation();
     setContractMenuAnchor({ el: event.currentTarget, id: contractId });
   };
@@ -117,15 +137,26 @@ const DashboardPage = () => {
     setContractMenuAnchor(null);
   };
 
-  const { data: contracts, isLoading, refetch } = useQuery({
-    queryKey: ['contracts'],
+  const {
+    data: contracts,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["contracts"],
     queryFn: contractService.getContracts,
+  });
+
+  // Analytics query (Business+ only)
+  const { data: analytics, isLoading: isLoadingAnalytics } = useQuery({
+    queryKey: ["analytics"],
+    queryFn: contractService.getAnalytics,
+    enabled: (user?.subscriptionPlan === 'business' || user?.subscriptionPlan === 'enterprise') && viewMode === 'analytics',
   });
 
   // Poll for processing contracts
   useEffect(() => {
     if (!contracts || !Array.isArray(contracts)) return;
-    const hasProcessing = contracts.some(c => c.status === 'processing');
+    const hasProcessing = contracts.some((c) => c.status === "processing");
     if (!hasProcessing) return;
     const interval = setInterval(() => {
       refetch().catch(() => {});
@@ -135,9 +166,9 @@ const DashboardPage = () => {
 
   const handleUploadComplete = (_contractId?: string) => {
     setShowUpload(false);
-    setViewMode('all');
+    setViewMode("all");
     refetch();
-    toast.success('Contract uploaded! Analysis in progress...');
+    toast.success("Contract uploaded! Analysis in progress...");
   };
 
   const handleDeleteClick = (contractId: string) => {
@@ -151,12 +182,12 @@ const DashboardPage = () => {
     setIsDeleting(true);
     try {
       await contractService.deleteContract(contractToDelete);
-      toast.success('Contract deleted');
+      toast.success("Contract deleted");
       refetch();
       setDeleteDialogOpen(false);
       setContractToDelete(null);
     } catch (error) {
-      toast.error('Failed to delete contract');
+      toast.error("Failed to delete contract");
     } finally {
       setIsDeleting(false);
     }
@@ -164,52 +195,128 @@ const DashboardPage = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: <CheckCircle /> };
-      case 'processing':
-        return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: <HourglassEmpty /> };
-      case 'failed':
-        return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: <ErrorIcon /> };
+      case "completed":
+        return {
+          color: "#10b981",
+          bg: "rgba(16, 185, 129, 0.15)",
+          icon: <CheckCircle />,
+        };
+      case "processing":
+        return {
+          color: "#f59e0b",
+          bg: "rgba(245, 158, 11, 0.15)",
+          icon: <HourglassEmpty />,
+        };
+      case "failed":
+        return {
+          color: "#ef4444",
+          bg: "rgba(239, 68, 68, 0.15)",
+          icon: <ErrorIcon />,
+        };
       default:
-        return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', icon: null };
+        return { color: "#94a3b8", bg: "rgba(148, 163, 184, 0.1)", icon: null };
     }
   };
 
+  // Handle bulk upload
+  const handleBulkUpload = async () => {
+    if (bulkUploadFiles.length === 0) return;
+    
+    if (!user || (user.subscriptionPlan !== 'business' && user.subscriptionPlan !== 'enterprise')) {
+      toast.error('Bulk upload is only available for Business and Enterprise plans');
+      return;
+    }
+
+    setIsBulkUploading(true);
+    try {
+      const response = await contractService.bulkUpload(bulkUploadFiles);
+      toast.success(`Uploaded ${response.results.filter((r: any) => r.status === 'processing').length} contracts successfully`);
+      setBulkUploadFiles([]);
+      refetch();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to upload contracts');
+    } finally {
+      setIsBulkUploading(false);
+    }
+  };
+
+  // Handle contract selection
+  const handleContractSelect = (contractId: string, event: React.ChangeEvent<HTMLInputElement> | React.MouseEvent) => {
+    event.stopPropagation();
+    const newSelected = new Set(selectedContracts);
+    if (newSelected.has(contractId)) {
+      newSelected.delete(contractId);
+    } else {
+      newSelected.add(contractId);
+    }
+    setSelectedContracts(newSelected);
+  };
+
+  // Handle compare
+  const handleCompare = () => {
+    if (selectedContracts.size < 2) {
+      toast.error('Please select at least 2 contracts to compare');
+      return;
+    }
+    const ids = Array.from(selectedContracts).join(',');
+    navigate(`/compare?ids=${ids}`);
+  };
+
+  // Clear selection when view mode changes
+  useEffect(() => {
+    setSelectedContracts(new Set());
+  }, [viewMode]);
+
   // Filter and sort contracts
-  let filteredContracts = contracts?.filter((contract) => {
-    const matchesSearch = contract.fileName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesView = viewMode === 'all' || contract.status === viewMode;
+  let filteredContracts =
+    contracts?.filter((contract) => {
+      const matchesSearch = contract.fileName
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesView = viewMode === "all" || contract.status === viewMode;
     return matchesSearch && matchesView;
   }) || [];
 
   filteredContracts = [...filteredContracts].sort((a, b) => {
     switch (sortBy) {
-      case 'name':
+      case "name":
         return a.fileName.localeCompare(b.fileName);
-      case 'status':
+      case "status":
         return a.status.localeCompare(b.status);
-      case 'date':
+      case "date":
       default:
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
     }
   });
 
-  const completedCount = contracts?.filter(c => c.status === 'completed').length || 0;
-  const processingCount = contracts?.filter(c => c.status === 'processing').length || 0;
+  const completedCount =
+    contracts?.filter((c) => c.status === "completed").length || 0;
+  const processingCount =
+    contracts?.filter((c) => c.status === "processing").length || 0;
   const totalCount = contracts?.length || 0;
 
   return (
-    <Box sx={{ minHeight: '100vh', background: '#0a0a0f', position: 'relative', pb: 6 }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "#0a0a0f",
+        position: "relative",
+        pb: 6,
+      }}
+    >
       {/* Subtle background gradient */}
       <Box
         sx={{
-          position: 'absolute',
+          position: "absolute",
           top: 0,
           left: 0,
           right: 0,
-          height: '50vh',
-          background: 'radial-gradient(ellipse at top, rgba(99, 102, 241, 0.1) 0%, transparent 50%)',
-          pointerEvents: 'none',
+          height: "50vh",
+          background:
+            "radial-gradient(ellipse at top, rgba(99, 102, 241, 0.1) 0%, transparent 50%)",
+          pointerEvents: "none",
           zIndex: 0,
         }}
       />
@@ -217,59 +324,64 @@ const DashboardPage = () => {
       {/* Floating Header */}
       <Box
         sx={{
-          position: 'sticky',
+          position: "sticky",
           top: 16,
           zIndex: 1000,
           px: 2,
-          transform: isHeaderVisible ? 'translateY(0)' : 'translateY(-120%)',
-          transition: 'transform 0.3s ease-in-out',
+          transform: isHeaderVisible ? "translateY(0)" : "translateY(-120%)",
+          transition: "transform 0.3s ease-in-out",
         }}
       >
         <Container maxWidth="xl">
           <Paper
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
               py: 2,
               px: 3,
               gap: 3,
-              background: 'rgba(15, 23, 42, 0.8)',
-              backdropFilter: 'blur(40px)',
+              background: "rgba(15, 23, 42, 0.8)",
+              backdropFilter: "blur(40px)",
               borderRadius: 3,
-              border: '1px solid rgba(148, 163, 184, 0.15)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              border: "1px solid rgba(148, 163, 184, 0.15)",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
             }}
           >
             {/* Logo */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <Box
                   sx={{
                     width: 40,
                     height: 40,
                     borderRadius: 2,
-                    background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
+                    background:
+                      "linear-gradient(135deg, #6366f1 0%, #ec4899 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
                   }}
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate("/dashboard")}
                 >
-                  <Description sx={{ color: '#ffffff', fontSize: 22 }} />
+                  <Description sx={{ color: "#ffffff", fontSize: 22 }} />
                 </Box>
               </motion.div>
               <Typography
                 variant="h6"
                 sx={{
                   fontWeight: 700,
-                  background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  cursor: 'pointer',
+                  background:
+                    "linear-gradient(135deg, #6366f1 0%, #ec4899 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  cursor: "pointer",
                 }}
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate("/dashboard")}
               >
                 ContractIQ
               </Typography>
@@ -282,39 +394,39 @@ const DashboardPage = () => {
               sx={{
                 flex: 1,
                 maxWidth: 600,
-                display: 'flex',
-                alignItems: 'center',
+                display: "flex",
+                alignItems: "center",
                 px: 2,
                 py: 1,
-                background: 'rgba(15, 23, 42, 0.6)',
-                border: '1px solid rgba(148, 163, 184, 0.15)',
+                background: "rgba(15, 23, 42, 0.6)",
+                border: "1px solid rgba(148, 163, 184, 0.15)",
                 borderRadius: 2,
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  borderColor: 'rgba(99, 102, 241, 0.3)',
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  borderColor: "rgba(99, 102, 241, 0.3)",
                 },
-                '&:focus-within': {
-                  borderColor: '#6366f1',
-                  boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.1)',
+                "&:focus-within": {
+                  borderColor: "#6366f1",
+                  boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
                 },
               }}
             >
-              <Search sx={{ color: 'text.secondary', mr: 1.5, fontSize: 20 }} />
+              <Search sx={{ color: "text.secondary", mr: 1.5, fontSize: 20 }} />
               <InputBase
                 placeholder="Search contracts... (⌘K)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 sx={{
                   flex: 1,
-                  color: 'text.primary',
-                  fontSize: '0.9375rem',
+                  color: "text.primary",
+                  fontSize: "0.9375rem",
                 }}
               />
               {searchQuery && (
                 <IconButton
                   size="small"
-                  onClick={() => setSearchQuery('')}
-                  sx={{ color: 'text.secondary', ml: 1 }}
+                  onClick={() => setSearchQuery("")}
+                  sx={{ color: "text.secondary", ml: 1 }}
                 >
                   <Close fontSize="small" />
                 </IconButton>
@@ -326,10 +438,10 @@ const DashboardPage = () => {
               onClick={handleMenuOpen}
               sx={{
                 p: 0.5,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  background: 'rgba(99, 102, 241, 0.1)',
-                  transform: 'scale(1.05)',
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  background: "rgba(99, 102, 241, 0.1)",
+                  transform: "scale(1.05)",
                 },
               }}
             >
@@ -337,13 +449,15 @@ const DashboardPage = () => {
                 sx={{
                   width: 36,
                   height: 36,
-                  background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
-                  color: '#ffffff',
+                  background:
+                    "linear-gradient(135deg, #6366f1 0%, #ec4899 100%)",
+                  color: "#ffffff",
                   fontWeight: 700,
-                  fontSize: '0.875rem',
+                  fontSize: "0.875rem",
                 }}
               >
-                {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
+                {user?.name?.[0]?.toUpperCase() ||
+                  user?.email?.[0]?.toUpperCase()}
               </Avatar>
             </IconButton>
           </Paper>
@@ -354,33 +468,47 @@ const DashboardPage = () => {
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={handleMenuClose}
-          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          transformOrigin={{ horizontal: "right", vertical: "top" }}
+          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         >
           <Box sx={{ px: 3, py: 2, minWidth: 240 }}>
-            <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {user?.name || user?.email?.split('@')[0] || 'User'}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  marginRight: 1,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: 120,
+                }}
+              >
+                {user?.name || user?.email?.split("@")[0] || "User"}
             </Typography>
+            <Chip
+                label={user?.subscriptionPlan || "free"}
+              size="small"
+              sx={{
+                  ml: 0.5,
+                  background: "rgba(99, 102, 241, 0.15)",
+                  color: "#818cf8",
+                fontWeight: 600,
+                  textTransform: "capitalize",
+                  height: 22,
+                  fontSize: "0.75rem",
+              }}
+            />
+            </Box>
             <Typography variant="caption" color="text.secondary">
               {user?.email}
             </Typography>
-            <Chip
-              label={user?.subscriptionPlan || 'free'}
-              size="small"
-              sx={{
-                mt: 1,
-                background: 'rgba(99, 102, 241, 0.15)',
-                color: '#818cf8',
-                fontWeight: 600,
-                textTransform: 'capitalize',
-              }}
-            />
           </Box>
           <Divider />
           <MenuItem
             onClick={() => {
               handleMenuClose();
-              navigate('/profile');
+              navigate("/profile");
             }}
           >
             <AccountCircle sx={{ mr: 2, fontSize: 20 }} />
@@ -391,7 +519,7 @@ const DashboardPage = () => {
               handleMenuClose();
               logout();
             }}
-            sx={{ color: 'error.main' }}
+            sx={{ color: "error.main" }}
           >
             <Logout sx={{ mr: 2, fontSize: 20 }} />
             Sign Out
@@ -399,18 +527,25 @@ const DashboardPage = () => {
         </Menu>
       </Box>
 
-      <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1, pt: 6 }}>
+      <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1, pt: 6 }}>
         {/* Upload Section */}
         <AnimatePresence>
           {showUpload && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
             >
               <Box sx={{ mb: 5 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 3,
+                  }}
+                >
                   <Typography variant="h5" sx={{ fontWeight: 700 }}>
                     Upload Contract
                   </Typography>
@@ -418,7 +553,7 @@ const DashboardPage = () => {
                     onClick={() => {
                       setShowUpload(false);
                       refetch();
-                      setViewMode('all');
+                      setViewMode("all");
                     }}
                   >
                     <Close />
@@ -434,16 +569,20 @@ const DashboardPage = () => {
           <>
             {/* Section Header */}
             <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 3,
+                  flexWrap: "wrap",
+                  gap: 2,
+                }}
+              >
                 <Box>
                   <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                     Contracts
                   </Typography>
-                  {filteredContracts.length !== totalCount && (
-                    <Typography variant="body2" color="text.secondary">
-                      Showing {filteredContracts.length} of {totalCount}
-                    </Typography>
-                  )}
                 </Box>
                 <Stack direction="row" spacing={1.5}>
                   <Tooltip title="Sort contracts">
@@ -451,15 +590,59 @@ const DashboardPage = () => {
                       variant="outlined"
                       startIcon={<Sort />}
                       onClick={() => {
-                        const options = ['date', 'name', 'status'];
+                        const options = ["date", "name", "status"];
                         const currentIndex = options.indexOf(sortBy);
-                        setSortBy(options[(currentIndex + 1) % options.length] as typeof sortBy);
+                        setSortBy(
+                          options[
+                            (currentIndex + 1) % options.length
+                          ] as typeof sortBy
+                        );
                       }}
                       size="small"
                     >
                       {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}
                     </Button>
                   </Tooltip>
+                  {hasComparison && selectedContracts.size >= 2 && (
+                    <Button
+                      variant="contained"
+                      startIcon={<CompareArrows />}
+                      onClick={handleCompare}
+                      size="small"
+                      sx={{
+                        background: "linear-gradient(135deg, #6366f1 0%, #ec4899 100%)",
+                        "&:hover": {
+                          background: "linear-gradient(135deg, #818cf8 0%, #f472b6 100%)",
+                        },
+                      }}
+                    >
+                      Compare ({selectedContracts.size})
+                    </Button>
+                  )}
+                  {(user?.subscriptionPlan === 'business' || user?.subscriptionPlan === 'enterprise') && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<Upload />}
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.multiple = true;
+                        input.accept = '.pdf,.docx,.txt';
+                        input.onchange = (e) => {
+                          const files = Array.from((e.target as HTMLInputElement).files || []);
+                          if (files.length > 0) {
+                            setBulkUploadFiles(files);
+                            handleBulkUpload();
+                          }
+                        };
+                        input.click();
+                      }}
+                      disabled={isBulkUploading}
+                      size="small"
+                    >
+                      {isBulkUploading ? 'Uploading...' : 'Bulk Upload'}
+                    </Button>
+                  )}
                   <Button
                     variant="contained"
                     startIcon={<Add />}
@@ -477,30 +660,203 @@ const DashboardPage = () => {
                 onChange={(_, newValue) => setViewMode(newValue)}
                 sx={{
                   borderBottom: 1,
-                  borderColor: 'rgba(148, 163, 184, 0.1)',
+                  borderColor: "rgba(148, 163, 184, 0.1)",
                 }}
               >
                 <Tab label={`All (${totalCount})`} value="all" />
-                <Tab label={`Completed (${completedCount})`} value="completed" />
-                <Tab label={`Processing (${processingCount})`} value="processing" />
+                <Tab
+                  label={`Completed (${completedCount})`}
+                  value="completed"
+                />
+                <Tab
+                  label={`Processing (${processingCount})`}
+                  value="processing"
+                />
+                {(user?.subscriptionPlan === 'business' || user?.subscriptionPlan === 'enterprise') && (
+                  <Tab label="Analytics" value="analytics" />
+                )}
               </Tabs>
             </Box>
 
-            {/* Contracts Grid */}
-            {isLoading ? (
+            {/* Analytics Dashboard (Business+ only) */}
+            {viewMode === 'analytics' && (user?.subscriptionPlan === 'business' || user?.subscriptionPlan === 'enterprise') && (
+              <Container maxWidth="xl" sx={{ mt: 4 }}>
+                {isLoadingAnalytics ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : analytics ? (
               <Grid container spacing={3}>
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Grid item xs={12} sm={6} md={4} key={i}>
-                    <Card>
-                      <CardContent sx={{ p: 3 }}>
-                        <Skeleton variant="rectangular" width="100%" height={120} sx={{ borderRadius: 2, mb: 2 }} />
-                        <Skeleton variant="text" width="60%" />
-                        <Skeleton variant="text" width="40%" />
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                        <CardContent>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                            Total Contracts
+                          </Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                            {analytics.totalContracts}
+                          </Typography>
                       </CardContent>
                     </Card>
                   </Grid>
-                ))}
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                        <CardContent>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                            Completed
+                          </Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 700, color: '#10b981' }}>
+                            {analytics.completedContracts}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                        <CardContent>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                            Total Risk Flags
+                          </Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 700, color: '#ef4444' }}>
+                            {analytics.totalRiskFlags}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                        <CardContent>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                            High-Risk Contracts
+                          </Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 700, color: '#f59e0b' }}>
+                            {analytics.highRiskContracts}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                        <CardContent>
+                          <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
+                            Risk Distribution
+                          </Typography>
+                          <Stack spacing={2}>
+                            <Box>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body2">High</Typography>
+                                <Typography variant="body2" sx={{ color: '#ef4444', fontWeight: 600 }}>
+                                  {analytics.riskDistribution.high}
+                                </Typography>
+                              </Box>
+                              <LinearProgress
+                                variant="determinate"
+                                value={(analytics.riskDistribution.high / analytics.totalRiskFlags) * 100 || 0}
+                                sx={{
+                                  height: 8,
+                                  borderRadius: 1,
+                                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                  '& .MuiLinearProgress-bar': {
+                                    backgroundColor: '#ef4444',
+                                  },
+                                }}
+                              />
+                            </Box>
+                            <Box>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body2">Medium</Typography>
+                                <Typography variant="body2" sx={{ color: '#f59e0b', fontWeight: 600 }}>
+                                  {analytics.riskDistribution.medium}
+                                </Typography>
+                              </Box>
+                              <LinearProgress
+                                variant="determinate"
+                                value={(analytics.riskDistribution.medium / analytics.totalRiskFlags) * 100 || 0}
+                                sx={{
+                                  height: 8,
+                                  borderRadius: 1,
+                                  backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                  '& .MuiLinearProgress-bar': {
+                                    backgroundColor: '#f59e0b',
+                                  },
+                                }}
+                              />
+                            </Box>
+                            <Box>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body2">Low</Typography>
+                                <Typography variant="body2" sx={{ color: '#10b981', fontWeight: 600 }}>
+                                  {analytics.riskDistribution.low}
+                                </Typography>
+                              </Box>
+                              <LinearProgress
+                                variant="determinate"
+                                value={(analytics.riskDistribution.low / analytics.totalRiskFlags) * 100 || 0}
+                                sx={{
+                                  height: 8,
+                                  borderRadius: 1,
+                                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                  '& .MuiLinearProgress-bar': {
+                                    backgroundColor: '#10b981',
+                                  },
+                                }}
+                              />
+                            </Box>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                        <CardContent>
+                          <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
+                            Contracts by Month
+                          </Typography>
+                          <Stack spacing={1.5}>
+                            {Object.entries(analytics.contractsByMonth || {})
+                              .sort(([a], [b]) => b.localeCompare(a))
+                              .slice(0, 6)
+                              .map(([month, count]) => (
+                                <Box key={month} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {new Date(month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                  </Typography>
+                                  <Chip
+                                    label={count as number}
+                                    size="small"
+                                    sx={{
+                                      background: 'rgba(99, 102, 241, 0.1)',
+                                      color: 'primary.main',
+                                      fontWeight: 600,
+                                    }}
+                                  />
+                                </Box>
+                              ))}
+                          </Stack>
+                        </CardContent>
+                      </Card>
               </Grid>
+                  </Grid>
+                ) : (
+                  <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)', textAlign: 'center', py: 8 }}>
+                    <Typography variant="h6" sx={{ mb: 2 }}>
+                      No analytics data available
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Upload contracts to see analytics
+                    </Typography>
+                  </Card>
+                )}
+              </Container>
+            )}
+
+            {/* Contracts Grid */}
+            {viewMode !== 'analytics' && (
+              <>
+                {isLoading ? (
+                  <Container maxWidth="xl" sx={{ mt: 4 }}>
+                    <DashboardSkeleton />
+                  </Container>
             ) : filteredContracts.length > 0 ? (
               <Grid container spacing={3}>
                 {filteredContracts.map((contract, index) => {
@@ -514,29 +870,37 @@ const DashboardPage = () => {
                       >
                         <Card
                           sx={{
-                            cursor: 'pointer',
-                            height: '100%',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            border: '1px solid rgba(148, 163, 184, 0.1)',
-                            position: 'relative',
-                            overflow: 'hidden',
-                            transition: 'all 0.3s ease',
-                            '&:hover': {
-                              borderColor: 'rgba(99, 102, 241, 0.4)',
-                              background: 'rgba(15, 23, 42, 0.8)',
-                              transform: 'translateY(-4px)',
-                              boxShadow: '0 12px 32px rgba(99, 102, 241, 0.15)',
-                              '& .contract-actions': {
+                            cursor: "pointer",
+                            height: "100%",
+                            background: selectedContracts.has(contract.id)
+                              ? "rgba(99, 102, 241, 0.15)"
+                              : "rgba(15, 23, 42, 0.6)",
+                            border: selectedContracts.has(contract.id)
+                              ? "2px solid #6366f1"
+                              : "1px solid rgba(148, 163, 184, 0.1)",
+                            position: "relative",
+                            overflow: "hidden",
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              borderColor: selectedContracts.has(contract.id)
+                                ? "#818cf8"
+                                : "rgba(99, 102, 241, 0.4)",
+                              background: selectedContracts.has(contract.id)
+                                ? "rgba(99, 102, 241, 0.2)"
+                                : "rgba(15, 23, 42, 0.8)",
+                              transform: "translateY(-4px)",
+                              boxShadow: "0 12px 32px rgba(99, 102, 241, 0.15)",
+                              "& .contract-actions": {
                                 opacity: 1,
                               },
                             },
                           }}
                           onClick={() => navigate(`/contracts/${contract.id}`)}
                         >
-                          {contract.status === 'processing' && (
+                          {contract.status === "processing" && (
                             <LinearProgress
                               sx={{
-                                position: 'absolute',
+                                position: "absolute",
                                 top: 0,
                                 left: 0,
                                 right: 0,
@@ -545,16 +909,49 @@ const DashboardPage = () => {
                             />
                           )}
                           <CardContent sx={{ p: 3 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                justifyContent: "space-between",
+                                mb: 2,
+                              }}
+                            >
+                              {hasComparison && contract.status === "completed" && (
+                                <Checkbox
+                                  checked={selectedContracts.has(contract.id)}
+                                  onChange={(e) => handleContractSelect(contract.id, e)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  sx={{
+                                    color: "#6366f1",
+                                    "&.Mui-checked": {
+                                      color: "#6366f1",
+                                    },
+                                    position: "absolute",
+                                    top: 8,
+                                    left: 8,
+                                    zIndex: 10,
+                                  }}
+                                />
+                              )}
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 2,
+                                  flex: 1,
+                                  minWidth: 0,
+                                  ml: hasComparison && contract.status === "completed" ? 4 : 0,
+                                }}
+                              >
                                 <Box
                                   sx={{
                                     width: 48,
                                     height: 48,
                                     borderRadius: 2,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
                                     background: statusStyle.bg,
                                     color: statusStyle.color,
                                     flexShrink: 0,
@@ -568,18 +965,23 @@ const DashboardPage = () => {
                                     sx={{
                                       fontWeight: 600,
                                       mb: 0.5,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
                                     }}
                                   >
                                     {contract.fileName}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {new Date(contract.createdAt).toLocaleDateString('en-US', {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric',
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {new Date(
+                                      contract.createdAt
+                                    ).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
                                     })}
                                   </Typography>
                                 </Box>
@@ -587,16 +989,23 @@ const DashboardPage = () => {
                               <IconButton
                                 className="contract-actions"
                                 size="small"
-                                onClick={(e) => handleContractMenuOpen(e, contract.id)}
+                                onClick={(e) =>
+                                  handleContractMenuOpen(e, contract.id)
+                                }
                                 sx={{
                                   opacity: 0,
-                                  transition: 'opacity 0.2s',
+                                  transition: "opacity 0.2s",
                                 }}
                               >
                                 <MoreVert />
                               </IconButton>
                             </Box>
-                            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              flexWrap="wrap"
+                              gap={1}
+                            >
                               <Chip
                                 label={contract.status}
                                 size="small"
@@ -612,9 +1021,9 @@ const DashboardPage = () => {
                                 label={contract.fileType.toUpperCase()}
                                 size="small"
                                 sx={{
-                                  background: 'rgba(255, 255, 255, 0.05)',
-                                  color: 'text.secondary',
-                                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                                  background: "rgba(255, 255, 255, 0.05)",
+                                  color: "text.secondary",
+                                  border: "1px solid rgba(255, 255, 255, 0.1)",
                                 }}
                               />
                             </Stack>
@@ -628,25 +1037,36 @@ const DashboardPage = () => {
             ) : (
               <Card
                 sx={{
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  border: '1px solid rgba(148, 163, 184, 0.1)',
-                  textAlign: 'center',
+                  background: "rgba(15, 23, 42, 0.6)",
+                  border: "1px solid rgba(148, 163, 184, 0.1)",
+                  textAlign: "center",
                   py: 10,
                 }}
               >
                 <CardContent>
-                  <Description sx={{ fontSize: 72, color: 'text.secondary', opacity: 0.2, mb: 3 }} />
+                  <Description
+                    sx={{
+                      fontSize: 72,
+                      color: "text.secondary",
+                      opacity: 0.2,
+                      mb: 3,
+                    }}
+                  />
                   <Typography variant="h5" sx={{ mb: 1.5, fontWeight: 600 }}>
-                    {searchQuery || viewMode !== 'all'
-                      ? 'No contracts found'
-                      : 'No contracts yet'}
+                    {searchQuery || viewMode !== "all"
+                      ? "No contracts found"
+                      : "No contracts yet"}
                   </Typography>
-                  <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 500, mx: 'auto' }}>
-                    {searchQuery || viewMode !== 'all'
-                      ? 'Try adjusting your filters or search terms'
-                      : 'Upload your first contract to get started with AI-powered analysis'}
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    sx={{ mb: 4, maxWidth: 500, mx: "auto" }}
+                  >
+                    {searchQuery || viewMode !== "all"
+                      ? "Try adjusting your filters or search terms"
+                      : "Upload your first contract to get started with AI-powered analysis"}
                   </Typography>
-                  {!searchQuery && viewMode === 'all' && (
+                  {!searchQuery && viewMode === "all" && (
                     <Button
                       variant="contained"
                       startIcon={<Upload />}
@@ -655,12 +1075,12 @@ const DashboardPage = () => {
                       Upload Your First Contract
                     </Button>
                   )}
-                  {(searchQuery || viewMode !== 'all') && (
+                  {(searchQuery || viewMode !== "all") && (
                     <Button
                       variant="outlined"
                       onClick={() => {
-                        setSearchQuery('');
-                        setViewMode('all');
+                        setSearchQuery("");
+                        setViewMode("all");
                       }}
                     >
                       Clear Filters
@@ -668,6 +1088,8 @@ const DashboardPage = () => {
                   )}
                 </CardContent>
               </Card>
+                )}
+              </>
             )}
           </>
         )}
@@ -695,7 +1117,7 @@ const DashboardPage = () => {
                 handleDeleteClick(contractMenuAnchor.id);
               }
             }}
-            sx={{ color: 'error.main' }}
+            sx={{ color: "error.main" }}
           >
             <Delete sx={{ mr: 2, fontSize: 20 }} />
             Delete
@@ -713,11 +1135,13 @@ const DashboardPage = () => {
           <DialogTitle>Delete Contract</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to delete this contract? This action cannot be undone.
+              Are you sure you want to delete this contract? This action cannot
+              be undone.
             </DialogContentText>
-            {contractToDelete && contracts?.find(c => c.id === contractToDelete) && (
+            {contractToDelete &&
+              contracts?.find((c) => c.id === contractToDelete) && (
               <DialogContentText sx={{ mt: 2, fontWeight: 600 }}>
-                {contracts.find(c => c.id === contractToDelete)?.fileName}
+                  {contracts.find((c) => c.id === contractToDelete)?.fileName}
               </DialogContentText>
             )}
           </DialogContent>
@@ -736,9 +1160,11 @@ const DashboardPage = () => {
               disabled={isDeleting}
               variant="contained"
               color="error"
-              startIcon={isDeleting ? <CircularProgress size={16} /> : <Delete />}
+              startIcon={
+                isDeleting ? <CircularProgress size={16} /> : <Delete />
+              }
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogActions>
         </Dialog>

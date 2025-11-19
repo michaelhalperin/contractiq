@@ -8,24 +8,30 @@ import { extractTextFromFile } from '../services/fileParser.service.js';
 import { uploadToLocal, deleteFromLocal } from '../services/localStorage.service.js';
 import { analyzeContract } from '../services/openai.service.js';
 import { sendAnalysisCompleteEmail } from '../services/email.service.js';
+import { getMaxFileSize, getContractHistoryDays, canExportFormat, hasFeature } from '../utils/planLimits.js';
+import { exportContract } from '../services/export.service.js';
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only PDF, DOCX, and TXT files are allowed.'));
-    }
-  },
-});
+// Dynamic multer configuration based on user plan
+const createUploadMiddleware = () => {
+  return multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 100 * 1024 * 1024, // Max 100MB (will be checked per plan in route)
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only PDF, DOCX, and TXT files are allowed.'));
+      }
+    },
+  });
+};
+
+const upload = createUploadMiddleware();
 
 // Upload and analyze contract
 router.post(
@@ -37,6 +43,26 @@ router.post(
     try {
       if (!req.file) {
         res.status(400).json({ error: 'No file uploaded' });
+        return;
+      }
+
+      // Check file size based on user's plan
+      const user = await User.findById(req.user!._id);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      const maxFileSizeMB = getMaxFileSize(user.subscriptionPlan);
+      const maxFileSizeBytes = maxFileSizeMB === -1 ? Infinity : maxFileSizeMB * 1024 * 1024;
+
+      if (req.file.size > maxFileSizeBytes) {
+        res.status(400).json({
+          error: `File size exceeds plan limit`,
+          maxSizeMB: maxFileSizeMB,
+          fileSizeMB: Math.round((req.file.size / (1024 * 1024)) * 100) / 100,
+          plan: user.subscriptionPlan,
+        });
         return;
       }
 
@@ -66,20 +92,17 @@ router.post(
         // Extract text from file
         const { text } = await extractTextFromFile(file.buffer, fileType);
 
-        // Analyze with AI
-        const analysis = await analyzeContract(text);
+        // Analyze with AI (with plan-based depth)
+        const analysis = await analyzeContract(text, user.subscriptionPlan);
 
         // Save analysis
         contract.analysis = analysis;
         contract.status = 'completed';
         await contract.save();
 
-        // Update user's contract count
-        const user = await User.findById(req.user!._id);
-        if (user) {
-          user.contractsUsedThisMonth += 1;
-          await user.save();
-        }
+        // Update user's contract count (already fetched above)
+        user.contractsUsedThisMonth += 1;
+        await user.save();
 
         // Send email notification
         try {
@@ -133,10 +156,26 @@ router.post(
   }
 );
 
-// Get user's contracts
+// Get user's contracts (with plan-based history filtering)
 router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const contracts = await Contract.find({ userId: req.user!._id })
+    const user = await User.findById(req.user!._id);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Build query with history limit based on plan
+    const query: any = { userId: req.user!._id };
+    const historyDays = getContractHistoryDays(user.subscriptionPlan);
+    
+    if (historyDays > 0) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - historyDays);
+      query.createdAt = { $gte: cutoffDate };
+    }
+
+    const contracts = await Contract.find(query)
       .sort({ createdAt: -1 })
       .select('-analysis'); // Don't send full analysis in list
 
@@ -246,6 +285,274 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Pro
   } catch (error) {
     console.error('Delete contract error:', error);
     res.status(500).json({ error: 'Failed to delete contract' });
+  }
+});
+
+// Export contract (Pro+ plans)
+router.get('/:id/export/:format', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById(req.user!._id);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const format = req.params.format.toLowerCase() as 'pdf' | 'word' | 'excel' | 'csv' | 'json';
+    
+    // Check if user's plan supports this export format
+    if (!canExportFormat(user.subscriptionPlan, format)) {
+      res.status(403).json({
+        error: 'Export format not available for your plan',
+        plan: user.subscriptionPlan,
+        availableFormats: ['pdf'], // Free plan only has PDF
+      });
+      return;
+    }
+
+    const contract = await Contract.findOne({
+      _id: req.params.id,
+      userId: req.user!._id,
+    });
+
+    if (!contract || !contract.analysis) {
+      res.status(404).json({ error: 'Contract not found or not analyzed' });
+      return;
+    }
+
+    const branded = hasFeature(user.subscriptionPlan, 'hasBrandedReports');
+    const exportBuffer = await exportContract({
+      format,
+      contractName: contract.fileName,
+      analysis: contract.analysis,
+      branded,
+    });
+
+    const contentTypeMap: Record<string, string> = {
+      pdf: 'application/pdf',
+      word: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      excel: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      csv: 'text/csv',
+      json: 'application/json',
+    };
+
+    const extensionMap: Record<string, string> = {
+      pdf: 'pdf',
+      word: 'docx',
+      excel: 'xlsx',
+      csv: 'csv',
+      json: 'json',
+    };
+
+    res.setHeader('Content-Type', contentTypeMap[format] || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${contract.fileName.replace(/\.[^/.]+$/, '')}.${extensionMap[format]}"`);
+    res.send(exportBuffer);
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Failed to export contract' });
+  }
+});
+
+// Compare contracts (Pro+ plans)
+router.post('/compare', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById(req.user!._id);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    if (!hasFeature(user.subscriptionPlan, 'hasComparison')) {
+      res.status(403).json({
+        error: 'Contract comparison is not available for your plan',
+        plan: user.subscriptionPlan,
+      });
+      return;
+    }
+
+    const { contractIds } = req.body;
+    if (!Array.isArray(contractIds) || contractIds.length < 2) {
+      res.status(400).json({ error: 'Please provide at least 2 contract IDs to compare' });
+      return;
+    }
+
+    const contracts = await Contract.find({
+      _id: { $in: contractIds },
+      userId: req.user!._id,
+    }).select('fileName analysis');
+
+    if (contracts.length !== contractIds.length) {
+      res.status(404).json({ error: 'One or more contracts not found' });
+      return;
+    }
+
+    // Simple comparison - in production, this could use AI to generate comparison
+    const comparison = {
+      contracts: contracts.map(c => ({
+        id: c._id,
+        fileName: c.fileName,
+        summary: c.analysis?.summary,
+        riskCount: c.analysis?.riskFlags.length || 0,
+        keyParties: c.analysis?.keyParties,
+      })),
+      differences: {
+        riskLevels: contracts.map(c => ({
+          contractId: c._id,
+          fileName: c.fileName,
+          highRisks: c.analysis?.riskFlags.filter(r => r.severity === 'high').length || 0,
+          mediumRisks: c.analysis?.riskFlags.filter(r => r.severity === 'medium').length || 0,
+          lowRisks: c.analysis?.riskFlags.filter(r => r.severity === 'low').length || 0,
+        })),
+      },
+    };
+
+    res.json(comparison);
+  } catch (error) {
+    console.error('Compare error:', error);
+    res.status(500).json({ error: 'Failed to compare contracts' });
+  }
+});
+
+// Bulk upload contracts (Business+ plans)
+router.post('/bulk-upload', authenticate, checkPlanLimits, upload.array('files', 10), async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById(req.user!._id);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    if (!hasFeature(user.subscriptionPlan, 'hasBulkProcessing')) {
+      res.status(403).json({
+        error: 'Bulk processing is not available for your plan',
+        plan: user.subscriptionPlan,
+      });
+      return;
+    }
+
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      res.status(400).json({ error: 'No files uploaded' });
+      return;
+    }
+
+    const maxFileSizeMB = getMaxFileSize(user.subscriptionPlan);
+    const maxFileSizeBytes = maxFileSizeMB === -1 ? Infinity : maxFileSizeMB * 1024 * 1024;
+
+    const results = [];
+    for (const file of files) {
+      if (file.size > maxFileSizeBytes) {
+        results.push({
+          fileName: file.originalname,
+          status: 'failed',
+          error: 'File size exceeds plan limit',
+        });
+        continue;
+      }
+
+      try {
+        const fileType = file.mimetype === 'application/pdf' ? 'pdf' :
+                        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 'docx' :
+                        'txt';
+
+        const fileUrl = await uploadToLocal(file.buffer, file.originalname);
+        const contract = new Contract({
+          userId: req.user!._id,
+          fileName: file.originalname,
+          fileType,
+          fileUrl,
+          fileSize: file.size,
+          status: 'processing',
+        });
+        await contract.save();
+
+        // Process asynchronously
+        extractTextFromFile(file.buffer, fileType)
+          .then(({ text }) => analyzeContract(text, user.subscriptionPlan))
+          .then(analysis => {
+            contract.analysis = analysis;
+            contract.status = 'completed';
+            return contract.save();
+          })
+          .then(() => {
+            user.contractsUsedThisMonth += 1;
+            return user.save();
+          })
+          .catch(error => {
+            console.error(`Error processing ${file.originalname}:`, error);
+            contract.status = 'failed';
+            contract.errorMessage = error.message;
+            return contract.save();
+          });
+
+        results.push({
+          fileName: file.originalname,
+          status: 'processing',
+          contractId: contract._id,
+        });
+      } catch (error) {
+        results.push({
+          fileName: file.originalname,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    res.json({ results, total: files.length });
+  } catch (error) {
+    console.error('Bulk upload error:', error);
+    res.status(500).json({ error: 'Failed to process bulk upload' });
+  }
+});
+
+// Analytics dashboard (Business+ plans)
+router.get('/analytics/overview', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById(req.user!._id);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    if (!hasFeature(user.subscriptionPlan, 'hasAnalytics')) {
+      res.status(403).json({
+        error: 'Analytics dashboard is not available for your plan',
+        plan: user.subscriptionPlan,
+      });
+      return;
+    }
+
+    const contracts = await Contract.find({ userId: req.user!._id });
+
+    const analytics = {
+      totalContracts: contracts.length,
+      completedContracts: contracts.filter(c => c.status === 'completed').length,
+      totalRiskFlags: contracts.reduce((sum, c) => sum + (c.analysis?.riskFlags.length || 0), 0),
+      highRiskContracts: contracts.filter(c => 
+        (c.analysis?.riskFlags.filter(r => r.severity === 'high').length || 0) > 0
+      ).length,
+      riskDistribution: {
+        high: contracts.reduce((sum, c) => 
+          sum + (c.analysis?.riskFlags.filter(r => r.severity === 'high').length || 0), 0
+        ),
+        medium: contracts.reduce((sum, c) => 
+          sum + (c.analysis?.riskFlags.filter(r => r.severity === 'medium').length || 0), 0
+        ),
+        low: contracts.reduce((sum, c) => 
+          sum + (c.analysis?.riskFlags.filter(r => r.severity === 'low').length || 0), 0
+        ),
+      },
+      contractsByMonth: contracts.reduce((acc, c) => {
+        const month = new Date(c.createdAt).toISOString().substring(0, 7);
+        acc[month] = (acc[month] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+    };
+
+    res.json(analytics);
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
   }
 });
 

@@ -17,8 +17,14 @@ import PricingPage from "./pages/PricingPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
+import ContactPage from "./pages/ContactPage";
+import CompareContractsPage from "./pages/CompareContractsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AccessibilityMenu from "./components/AccessibilityMenu";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,13 +99,18 @@ function App() {
         <BrowserRouter
           future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
         >
-          <Routes>
+          <ErrorBoundary>
+            <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route
               path="/dashboard"
               element={
@@ -113,6 +124,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ContractDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/compare"
+              element={
+                <ProtectedRoute>
+                  <CompareContractsPage />
                 </ProtectedRoute>
               }
             />
@@ -134,6 +153,7 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </ErrorBoundary>
           <AccessibilityMenu />
         </BrowserRouter>
         <Toaster
