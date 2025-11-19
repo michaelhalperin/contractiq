@@ -1,5 +1,4 @@
-import { Component } from 'react';
-import type { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Box, Container, Typography, Button, Card, CardContent } from '@mui/material';
 import { ErrorOutline, Home, Refresh } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -125,7 +124,7 @@ const ErrorFallback = ({ error, onReset }: ErrorFallbackProps) => {
             <Typography variant="body1" color="text.secondary" paragraph>
               We're sorry, but something unexpected happened. Our team has been notified and is working on a fix.
             </Typography>
-            {error && import.meta.env.DEV && (
+            {error && process.env.NODE_ENV === 'development' && (
               <Box
                 sx={{
                   mt: 3,

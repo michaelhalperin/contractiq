@@ -78,7 +78,7 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+  origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
@@ -109,7 +109,7 @@ app.use(cors({
 }));
 app.use(cookieParser());
 // Exclude webhook route from JSON parsing (needs raw body for signature verification)
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req, res, next) => {
   if (req.path === '/api/subscription/webhook') {
     next();
   } else {
