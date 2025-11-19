@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "postinstall": "npm run build || echo 'Build failed, but continuing...'",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
