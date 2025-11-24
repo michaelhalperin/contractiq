@@ -22,12 +22,18 @@ const nodeEnv = process.env.NODE_ENV || 'development';
 const envFile = nodeEnv === 'production' ? '.env.production' : '.env.development';
 
 // Resolve paths - try multiple approaches for compatibility
-// When running with tsx, __dirname is src/, when compiled it's dist/
+// When running with tsx, __dirname is src/, when compiled it's dist/backend/src/
 // process.cwd() gives us the backend root when running from backend/
 let backendRoot: string;
 if (__dirname.includes('dist')) {
-  // Compiled code
-  backendRoot = path.resolve(__dirname, '../..');
+  // Compiled code - check if we're in dist/backend/src/ structure
+  if (__dirname.includes('dist/backend/src') || __dirname.includes('dist\\backend\\src')) {
+    // New structure: dist/backend/src/ -> go up 3 levels to backend/
+    backendRoot = path.resolve(__dirname, '../../..');
+  } else {
+    // Old structure: dist/ -> go up 2 levels to backend/
+    backendRoot = path.resolve(__dirname, '../..');
+  }
 } else {
   // Development with tsx
   backendRoot = path.resolve(__dirname, '..');
