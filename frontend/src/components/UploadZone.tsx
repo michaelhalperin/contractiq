@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Box, Typography, Paper, CircularProgress, LinearProgress } from '@mui/material';
-import { CloudUpload, Description } from '@mui/icons-material';
+import { Box, Typography, Paper, CircularProgress, LinearProgress, Chip } from '@mui/material';
+import { CloudUpload, Description, AutoAwesome } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { contractService } from '../services/contract.service';
 import toast from 'react-hot-toast';
@@ -34,14 +34,42 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
     return `${maxBytes / (1024 * 1024)}MB`;
   };
 
+  // Get allowed file types based on plan
+  const getAllowedFileTypes = () => {
+    if (!user) return ['pdf', 'docx', 'txt']; // Default to free plan
+    const plan = user.subscriptionPlan;
+    if (plan === 'free') return ['pdf', 'docx', 'txt'];
+    // Pro and above get RTF and ODT
+    return ['pdf', 'docx', 'txt', 'rtf', 'odt'];
+  };
+
+  const getAllowedMimeTypes = () => {
+    const types = getAllowedFileTypes();
+    const mimeMap: Record<string, string[]> = {
+      'pdf': ['application/pdf'],
+      'docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      'txt': ['text/plain'],
+      'rtf': ['application/rtf', 'text/rtf'],
+      'odt': ['application/vnd.oasis.opendocument.text'],
+    };
+    return types.flatMap(type => mimeMap[type] || []);
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
     // Validate file type
-    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Invalid file type. Only PDF, DOCX, and TXT files are allowed.');
+    const allowedTypes = getAllowedFileTypes();
+    const fileName = file.name.toLowerCase();
+    const fileExtension = fileName.split('.').pop()?.toLowerCase();
+    
+    const isValidType = getAllowedMimeTypes().includes(file.type) || 
+                       (fileExtension && allowedTypes.includes(fileExtension));
+    
+    if (!isValidType) {
+      const allowedList = allowedTypes.map(t => t.toUpperCase()).join(', ');
+      toast.error(`Invalid file type. Allowed types: ${allowedList}`);
       return;
     }
 
@@ -88,13 +116,29 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
     }
   }, [navigate, onUploadComplete]);
 
+  const getAcceptTypes = () => {
+    const allowedTypes = getAllowedFileTypes();
+    const acceptMap: Record<string, string[]> = {
+      'pdf': ['application/pdf'],
+      'docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      'txt': ['text/plain'],
+      'rtf': ['application/rtf', 'text/rtf'],
+      'odt': ['application/vnd.oasis.opendocument.text'],
+    };
+    
+    const accept: Record<string, string[]> = {};
+    allowedTypes.forEach(type => {
+      const mimeTypes = acceptMap[type] || [];
+      mimeTypes.forEach(mime => {
+        accept[mime] = [`.${type}`];
+      });
+    });
+    return accept;
+  };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'text/plain': ['.txt'],
-    },
+    accept: getAcceptTypes(),
     multiple: false,
     disabled: isUploading,
   });
@@ -121,9 +165,71 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
             ? 'rgba(15, 23, 42, 0.4)'
             : 'rgba(99, 102, 241, 0.05)',
           transform: isUploading ? 'none' : 'scale(1.01)',
+          boxShadow: isUploading ? 'none' : '0 12px 40px rgba(99, 102, 241, 0.15)',
         },
       }}
     >
+      {/* Animated background gradient */}
+      {!isUploading && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: isDragActive
+              ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%)'
+              : 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%)',
+            opacity: isDragActive ? 1 : 0.5,
+            transition: 'opacity 0.3s ease',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      
+      {/* Sparkle effects on drag */}
+      {isDragActive && !isUploading && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            pointerEvents: 'none',
+            overflow: 'hidden',
+          }}
+        >
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{
+                opacity: [0, 1, 0],
+                scale: [0, 1, 0],
+                x: Math.random() * 100 + '%',
+                y: Math.random() * 100 + '%',
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                delay: i * 0.3,
+                ease: 'easeInOut',
+              }}
+              style={{
+                position: 'absolute',
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: 'rgba(99, 102, 241, 0.8)',
+                boxShadow: '0 0 12px rgba(99, 102, 241, 0.6)',
+              }}
+            />
+          ))}
+        </Box>
+      )}
+
       <input {...getInputProps()} />
       <Box
         sx={{
@@ -146,16 +252,23 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
               style={{ width: '100%', textAlign: 'center' }}
             >
               <Box sx={{ mb: 4, position: 'relative', display: 'inline-block' }}>
-                <CircularProgress
-                  size={80}
-                  thickness={4}
-                  sx={{
-                    color: 'primary.main',
-                    '& .MuiCircularProgress-circle': {
-                      strokeLinecap: 'round',
-                    },
-                  }}
-                />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                >
+                  <CircularProgress
+                    size={80}
+                    thickness={4}
+                    variant="determinate"
+                    value={uploadProgress}
+                    sx={{
+                      color: 'primary.main',
+                      '& .MuiCircularProgress-circle': {
+                        strokeLinecap: 'round',
+                      },
+                    }}
+                  />
+                </motion.div>
                 <Box
                   sx={{
                     position: 'absolute',
@@ -164,7 +277,12 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
                     transform: 'translate(-50%, -50%)',
                   }}
                 >
-                  <Description sx={{ fontSize: 32, color: 'primary.main' }} />
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <Description sx={{ fontSize: 32, color: 'primary.main' }} />
+                  </motion.div>
                 </Box>
               </Box>
               <Typography
@@ -213,6 +331,7 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
                 animate={{
                   y: [0, -12, 0],
                   rotate: [0, 3, -3, 0],
+                  scale: isDragActive ? [1, 1.1, 1] : 1,
                 }}
                 transition={{
                   duration: 3,
@@ -229,6 +348,7 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     mb: 4,
+                    position: 'relative',
                     background: isDragActive
                       ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
                       : 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
@@ -237,12 +357,36 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
                       ? '0 12px 40px rgba(99, 102, 241, 0.3)'
                       : '0 8px 32px rgba(99, 102, 241, 0.2)',
                     transition: 'all 0.3s ease',
+                    overflow: 'hidden',
                   }}
                 >
+                  {/* Pulsing ring effect */}
+                  {isDragActive && (
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.3, 1],
+                        opacity: [0.5, 0, 0.5],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                      style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '12px',
+                        border: '2px solid rgba(99, 102, 241, 0.6)',
+                      }}
+                    />
+                  )}
                   <CloudUpload
                     sx={{
                       fontSize: { xs: 48, md: 64 },
                       color: 'primary.main',
+                      position: 'relative',
+                      zIndex: 1,
                     }}
                   />
                 </Box>
@@ -276,31 +420,60 @@ const UploadZone = ({ onUploadComplete }: UploadZoneProps) => {
                   gap: 1.5,
                   justifyContent: 'center',
                   alignItems: 'center',
+                  mb: 2,
                 }}
               >
-                {['PDF', 'DOCX', 'TXT'].map((type) => (
-                  <Box
+                {getAllowedFileTypes().map((type, index) => (
+                  <motion.div
                     key={type}
-                    sx={{
-                      px: 2,
-                      py: 0.75,
-                      borderRadius: 2,
-                      background: 'rgba(99, 102, 241, 0.1)',
-                      border: '1px solid rgba(99, 102, 241, 0.2)',
-                    }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ scale: 1.1, y: -2 }}
                   >
-                    <Typography
-                      variant="caption"
+                    <Chip
+                      label={type.toUpperCase()}
                       sx={{
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 2,
+                        background: 'rgba(99, 102, 241, 0.1)',
+                        border: '1px solid rgba(99, 102, 241, 0.2)',
                         color: 'primary.main',
                         fontWeight: 600,
                         fontSize: '0.75rem',
+                        height: 'auto',
+                        '&:hover': {
+                          background: 'rgba(99, 102, 241, 0.2)',
+                          borderColor: 'primary.main',
+                        },
+                        transition: 'all 0.2s ease',
                       }}
-                    >
-                      {type}
-                    </Typography>
-                  </Box>
+                    />
+                  </motion.div>
                 ))}
+              </Box>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                  mt: 1,
+                }}
+              >
+                <AutoAwesome sx={{ fontSize: 14, color: 'primary.main', opacity: 0.7 }} />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: '0.75rem',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  AI-powered analysis
+                </Typography>
+                <AutoAwesome sx={{ fontSize: 14, color: 'primary.main', opacity: 0.7 }} />
               </Box>
               <Typography
                 variant="caption"

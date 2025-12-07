@@ -21,11 +21,29 @@ const createUploadMiddleware = () => {
       fileSize: 100 * 1024 * 1024, // Max 100MB (will be checked per plan in route)
     },
     fileFilter: (req, file, cb) => {
-      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-      if (allowedTypes.includes(file.mimetype)) {
+      // Get user plan to determine allowed file types
+      const allowedTypesFree = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain'
+      ];
+      
+      const allowedTypesPro = [
+        ...allowedTypesFree,
+        'application/rtf',
+        'text/rtf',
+        'application/vnd.oasis.opendocument.text'
+      ];
+      
+      // Default to free plan if user not authenticated yet (will be checked in route)
+      const allowedTypes = allowedTypesPro; // Allow all types, check in route based on plan
+      
+      if (allowedTypes.includes(file.mimetype) || 
+          file.originalname.toLowerCase().endsWith('.rtf') ||
+          file.originalname.toLowerCase().endsWith('.odt')) {
         cb(null, true);
       } else {
-        cb(new Error('Invalid file type. Only PDF, DOCX, and TXT files are allowed.'));
+        cb(new Error('Invalid file type. Allowed types depend on your subscription plan.'));
       }
     },
   });
@@ -67,9 +85,44 @@ router.post(
       }
 
       const file = req.file;
-      const fileType = file.mimetype === 'application/pdf' ? 'pdf' :
-                      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 'docx' :
-                      'txt';
+      
+      // Determine file type from mimetype or extension
+      let fileType: 'pdf' | 'docx' | 'txt' | 'rtf' | 'odt';
+      const fileName = file.originalname.toLowerCase();
+      
+      if (file.mimetype === 'application/pdf' || fileName.endsWith('.pdf')) {
+        fileType = 'pdf';
+      } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+        fileType = 'docx';
+      } else if (file.mimetype === 'application/rtf' || file.mimetype === 'text/rtf' || fileName.endsWith('.rtf')) {
+        fileType = 'rtf';
+      } else if (file.mimetype === 'application/vnd.oasis.opendocument.text' || fileName.endsWith('.odt')) {
+        fileType = 'odt';
+      } else if (file.mimetype === 'text/plain' || fileName.endsWith('.txt')) {
+        fileType = 'txt';
+      } else {
+        res.status(400).json({ error: 'Unsupported file type' });
+        return;
+      }
+
+      // Check if file type is allowed for user's plan
+      const allowedTypesFree: Array<'pdf' | 'docx' | 'txt'> = ['pdf', 'docx', 'txt'];
+      const allowedTypesPro: Array<'pdf' | 'docx' | 'txt' | 'rtf' | 'odt'> = ['pdf', 'docx', 'txt', 'rtf', 'odt'];
+      
+      const isProOrHigher = user.subscriptionPlan === 'pro' || 
+                            user.subscriptionPlan === 'business' || 
+                            user.subscriptionPlan === 'enterprise';
+      
+      const allowedTypes = isProOrHigher ? allowedTypesPro : allowedTypesFree;
+      
+      if (!allowedTypes.includes(fileType)) {
+        res.status(403).json({
+          error: `File type ${fileType.toUpperCase()} is not available for your plan. Upgrade to Pro or higher to use RTF and ODT files.`,
+          plan: user.subscriptionPlan,
+          allowedTypes: allowedTypesFree,
+        });
+        return;
+      }
 
       let contract: InstanceType<typeof Contract> | null = null;
 
@@ -385,7 +438,7 @@ router.post('/compare', authenticate, async (req: AuthRequest, res: Response): P
       return;
     }
 
-    // Simple comparison - in production, this could use AI to generate comparison
+    // Enhanced comparison with detailed data
     const comparison = {
       contracts: contracts.map(c => ({
         id: c._id,
@@ -393,6 +446,16 @@ router.post('/compare', authenticate, async (req: AuthRequest, res: Response): P
         summary: c.analysis?.summary,
         riskCount: c.analysis?.riskFlags.length || 0,
         keyParties: c.analysis?.keyParties,
+        duration: c.analysis?.duration,
+        paymentTerms: c.analysis?.paymentTerms,
+        obligations: c.analysis?.obligations || [],
+        dates: c.analysis?.dates,
+        financialDetails: c.analysis?.financialDetails,
+        legalInfo: c.analysis?.legalInfo,
+        contractMetadata: c.analysis?.contractMetadata,
+        structuredTerms: c.analysis?.structuredTerms,
+        performanceMetrics: c.analysis?.performanceMetrics,
+        riskFlags: c.analysis?.riskFlags || [],
       })),
       differences: {
         riskLevels: contracts.map(c => ({
@@ -401,6 +464,38 @@ router.post('/compare', authenticate, async (req: AuthRequest, res: Response): P
           highRisks: c.analysis?.riskFlags.filter(r => r.severity === 'high').length || 0,
           mediumRisks: c.analysis?.riskFlags.filter(r => r.severity === 'medium').length || 0,
           lowRisks: c.analysis?.riskFlags.filter(r => r.severity === 'low').length || 0,
+        })),
+      },
+      // Comparison insights
+      insights: {
+        financialComparison: contracts.map(c => ({
+          contractId: c._id,
+          fileName: c.fileName,
+          totalValue: c.analysis?.financialDetails?.totalValue,
+          currency: c.analysis?.financialDetails?.currency,
+          paymentAmounts: c.analysis?.financialDetails?.paymentAmounts || [],
+        })),
+        dateComparison: contracts.map(c => ({
+          contractId: c._id,
+          fileName: c.fileName,
+          startDate: c.analysis?.dates?.startDate,
+          endDate: c.analysis?.dates?.endDate,
+          duration: c.analysis?.duration,
+        })),
+        legalComparison: contracts.map(c => ({
+          contractId: c._id,
+          fileName: c.fileName,
+          governingLaw: c.analysis?.legalInfo?.governingLaw,
+          jurisdiction: c.analysis?.legalInfo?.jurisdiction,
+          disputeResolution: c.analysis?.legalInfo?.disputeResolution,
+        })),
+        termsComparison: contracts.map(c => ({
+          contractId: c._id,
+          fileName: c.fileName,
+          renewal: c.analysis?.structuredTerms?.renewal,
+          termination: c.analysis?.structuredTerms?.termination,
+          intellectualProperty: c.analysis?.structuredTerms?.intellectualProperty,
+          confidentiality: c.analysis?.structuredTerms?.confidentiality,
         })),
       },
     };
@@ -450,9 +545,47 @@ router.post('/bulk-upload', authenticate, checkPlanLimits, upload.array('files',
       }
 
       try {
-        const fileType = file.mimetype === 'application/pdf' ? 'pdf' :
-                        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 'docx' :
-                        'txt';
+        // Determine file type from mimetype or extension
+        let fileType: 'pdf' | 'docx' | 'txt' | 'rtf' | 'odt';
+        const fileName = file.originalname.toLowerCase();
+        
+        if (file.mimetype === 'application/pdf' || fileName.endsWith('.pdf')) {
+          fileType = 'pdf';
+        } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+          fileType = 'docx';
+        } else if (file.mimetype === 'application/rtf' || file.mimetype === 'text/rtf' || fileName.endsWith('.rtf')) {
+          fileType = 'rtf';
+        } else if (file.mimetype === 'application/vnd.oasis.opendocument.text' || fileName.endsWith('.odt')) {
+          fileType = 'odt';
+        } else if (file.mimetype === 'text/plain' || fileName.endsWith('.txt')) {
+          fileType = 'txt';
+        } else {
+          results.push({
+            fileName: file.originalname,
+            status: 'failed',
+            error: 'Unsupported file type',
+          });
+          continue;
+        }
+
+        // Check if file type is allowed for user's plan
+        const allowedTypesFree: Array<'pdf' | 'docx' | 'txt'> = ['pdf', 'docx', 'txt'];
+        const allowedTypesPro: Array<'pdf' | 'docx' | 'txt' | 'rtf' | 'odt'> = ['pdf', 'docx', 'txt', 'rtf', 'odt'];
+        
+        const isProOrHigher = user.subscriptionPlan === 'pro' || 
+                              user.subscriptionPlan === 'business' || 
+                              user.subscriptionPlan === 'enterprise';
+        
+        const allowedTypes = isProOrHigher ? allowedTypesPro : allowedTypesFree;
+        
+        if (!allowedTypes.includes(fileType)) {
+          results.push({
+            fileName: file.originalname,
+            status: 'failed',
+            error: `File type ${fileType.toUpperCase()} not available for your plan`,
+          });
+          continue;
+        }
 
         const fileUrl = await uploadToLocal(file.buffer, file.originalname);
         const contract = new Contract({

@@ -198,7 +198,7 @@ export const theme = createTheme({
             },
             '&.Mui-focused': {
               borderColor: '#6366f1',
-              boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.1)',
+              boxShadow: 'none',
             },
             '& fieldset': {
               border: 'none',

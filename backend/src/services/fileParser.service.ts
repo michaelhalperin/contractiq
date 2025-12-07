@@ -43,9 +43,45 @@ export const parseText = async (buffer: Buffer): Promise<ParsedText> => {
   };
 };
 
+// Parse RTF files (basic text extraction)
+export const parseRTF = async (buffer: Buffer): Promise<ParsedText> => {
+  try {
+    // RTF files contain plain text mixed with formatting codes
+    // Simple extraction: remove RTF control words and keep readable text
+    const text = buffer.toString('utf-8');
+    // Remove RTF control sequences (basic approach)
+    const cleaned = text
+      .replace(/\\[a-z]+\d*\s?/gi, ' ') // Remove RTF commands
+      .replace(/[{}]/g, ' ') // Remove braces
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    return {
+      text: cleaned || text, // Fallback to original if cleaning removes everything
+      metadata: {},
+    };
+  } catch (error) {
+    throw new Error(`Failed to parse RTF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+// Parse ODT files using mammoth (OpenDocument Text)
+export const parseODT = async (buffer: Buffer): Promise<ParsedText> => {
+  try {
+    // Mammoth can parse ODT files similarly to DOCX
+    const result = await mammoth.extractRawText({ buffer });
+    return {
+      text: result.value,
+      metadata: {},
+    };
+  } catch (error) {
+    throw new Error(`Failed to parse ODT: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
 export const extractTextFromFile = async (
   buffer: Buffer,
-  fileType: 'pdf' | 'docx' | 'txt'
+  fileType: 'pdf' | 'docx' | 'txt' | 'rtf' | 'odt'
 ): Promise<ParsedText> => {
   switch (fileType) {
     case 'pdf':
@@ -54,6 +90,10 @@ export const extractTextFromFile = async (
       return parseDOCX(buffer);
     case 'txt':
       return parseText(buffer);
+    case 'rtf':
+      return parseRTF(buffer);
+    case 'odt':
+      return parseODT(buffer);
     default:
       throw new Error(`Unsupported file type: ${fileType}`);
   }

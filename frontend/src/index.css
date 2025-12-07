@@ -151,11 +151,9 @@ body {
   scroll-behavior: auto !important;
 }
 
-/* Enhanced Focus Indicators */
+/* Enhanced Focus Indicators - Removed outline for cleaner UI */
 *:focus-visible {
-  outline: 3px solid #6366f1 !important;
-  outline-offset: 2px !important;
-  border-radius: 4px !important;
+  outline: none !important;
 }
 
 /* Skip to main content link */

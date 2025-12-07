@@ -45,12 +45,15 @@ import {
   Delete,
   Add,
   CompareArrows,
+  CreditCard,
+  Star,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "../store/authStore";
 import { contractService } from "../services/contract.service";
 import { useQuery } from "@tanstack/react-query";
 import UploadZone from "../components/UploadZone";
+import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import toast from "react-hot-toast";
 import { DashboardSkeleton } from "../components/LoadingSkeleton";
 
@@ -433,6 +436,33 @@ const DashboardPage = () => {
               )}
             </Paper>
 
+            {/* Subscription Button - Prominent */}
+            {user && (user.subscriptionPlan === 'free' || user.subscriptionStatus !== 'active') && (
+              <Button
+                variant="contained"
+                startIcon={<Star />}
+                onClick={() => navigate("/pricing")}
+                sx={{
+                  background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
+                  color: "#ffffff",
+                  fontWeight: 600,
+                  px: 2.5,
+                  py: 1,
+                  borderRadius: 2,
+                  boxShadow: "0 4px 12px rgba(245, 158, 11, 0.4)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                    boxShadow: "0 6px 16px rgba(245, 158, 11, 0.5)",
+                    transform: "translateY(-1px)",
+                  },
+                  transition: "all 0.2s ease",
+                  display: { xs: "none", md: "flex" },
+                }}
+              >
+                Upgrade Plan
+              </Button>
+            )}
+
             {/* User Menu */}
             <IconButton
               onClick={handleMenuOpen}
@@ -505,6 +535,37 @@ const DashboardPage = () => {
             </Typography>
           </Box>
           <Divider />
+          <MenuItem
+            onClick={() => {
+              handleMenuClose();
+              navigate("/pricing");
+            }}
+            sx={{
+              background: user?.subscriptionPlan === 'free' 
+                ? 'rgba(245, 158, 11, 0.1)' 
+                : 'transparent',
+              '&:hover': {
+                background: user?.subscriptionPlan === 'free'
+                  ? 'rgba(245, 158, 11, 0.15)'
+                  : 'rgba(99, 102, 241, 0.1)',
+              },
+            }}
+          >
+            <CreditCard sx={{ mr: 2, fontSize: 20, color: user?.subscriptionPlan === 'free' ? '#f59e0b' : 'inherit' }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {user?.subscriptionPlan === 'free' ? 'Upgrade Plan' : 'Manage Subscription'}
+              </Typography>
+              {user?.subscriptionPlan === 'free' && (
+                <Typography variant="caption" sx={{ color: '#f59e0b', display: 'block' }}>
+                  Unlock premium features
+                </Typography>
+              )}
+            </Box>
+            {user?.subscriptionPlan === 'free' && (
+              <Star sx={{ fontSize: 16, color: '#f59e0b' }} />
+            )}
+          </MenuItem>
           <MenuItem
             onClick={() => {
               handleMenuClose();
@@ -681,172 +742,11 @@ const DashboardPage = () => {
             {/* Analytics Dashboard (Business+ only) */}
             {viewMode === 'analytics' && (user?.subscriptionPlan === 'business' || user?.subscriptionPlan === 'enterprise') && (
               <Container maxWidth="xl" sx={{ mt: 4 }}>
-                {isLoadingAnalytics ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                    <CircularProgress />
-                  </Box>
-                ) : analytics ? (
-              <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
-                        <CardContent>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                            Total Contracts
-                          </Typography>
-                          <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                            {analytics.totalContracts}
-                          </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
-                        <CardContent>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                            Completed
-                          </Typography>
-                          <Typography variant="h4" sx={{ fontWeight: 700, color: '#10b981' }}>
-                            {analytics.completedContracts}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
-                        <CardContent>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                            Total Risk Flags
-                          </Typography>
-                          <Typography variant="h4" sx={{ fontWeight: 700, color: '#ef4444' }}>
-                            {analytics.totalRiskFlags}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
-                        <CardContent>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                            High-Risk Contracts
-                          </Typography>
-                          <Typography variant="h4" sx={{ fontWeight: 700, color: '#f59e0b' }}>
-                            {analytics.highRiskContracts}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
-                        <CardContent>
-                          <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
-                            Risk Distribution
-                          </Typography>
-                          <Stack spacing={2}>
-                            <Box>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                <Typography variant="body2">High</Typography>
-                                <Typography variant="body2" sx={{ color: '#ef4444', fontWeight: 600 }}>
-                                  {analytics.riskDistribution.high}
-                                </Typography>
-                              </Box>
-                              <LinearProgress
-                                variant="determinate"
-                                value={(analytics.riskDistribution.high / analytics.totalRiskFlags) * 100 || 0}
-                                sx={{
-                                  height: 8,
-                                  borderRadius: 1,
-                                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                  '& .MuiLinearProgress-bar': {
-                                    backgroundColor: '#ef4444',
-                                  },
-                                }}
-                              />
-                            </Box>
-                            <Box>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                <Typography variant="body2">Medium</Typography>
-                                <Typography variant="body2" sx={{ color: '#f59e0b', fontWeight: 600 }}>
-                                  {analytics.riskDistribution.medium}
-                                </Typography>
-                              </Box>
-                              <LinearProgress
-                                variant="determinate"
-                                value={(analytics.riskDistribution.medium / analytics.totalRiskFlags) * 100 || 0}
-                                sx={{
-                                  height: 8,
-                                  borderRadius: 1,
-                                  backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                  '& .MuiLinearProgress-bar': {
-                                    backgroundColor: '#f59e0b',
-                                  },
-                                }}
-                              />
-                            </Box>
-                            <Box>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                <Typography variant="body2">Low</Typography>
-                                <Typography variant="body2" sx={{ color: '#10b981', fontWeight: 600 }}>
-                                  {analytics.riskDistribution.low}
-                                </Typography>
-                              </Box>
-                              <LinearProgress
-                                variant="determinate"
-                                value={(analytics.riskDistribution.low / analytics.totalRiskFlags) * 100 || 0}
-                                sx={{
-                                  height: 8,
-                                  borderRadius: 1,
-                                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                  '& .MuiLinearProgress-bar': {
-                                    backgroundColor: '#10b981',
-                                  },
-                                }}
-                              />
-                            </Box>
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
-                        <CardContent>
-                          <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
-                            Contracts by Month
-                          </Typography>
-                          <Stack spacing={1.5}>
-                            {Object.entries(analytics.contractsByMonth || {})
-                              .sort(([a], [b]) => b.localeCompare(a))
-                              .slice(0, 6)
-                              .map(([month, count]) => (
-                                <Box key={month} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {new Date(month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                  </Typography>
-                                  <Chip
-                                    label={count as number}
-                                    size="small"
-                                    sx={{
-                                      background: 'rgba(99, 102, 241, 0.1)',
-                                      color: 'primary.main',
-                                      fontWeight: 600,
-                                    }}
-                                  />
-                                </Box>
-                              ))}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-              </Grid>
-                  </Grid>
-                ) : (
-                  <Card sx={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)', textAlign: 'center', py: 8 }}>
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                      No analytics data available
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Upload contracts to see analytics
-                    </Typography>
-                  </Card>
-                )}
+                <AnalyticsDashboard
+                  analytics={analytics}
+                  isLoading={isLoadingAnalytics}
+                  onRefresh={() => refetch()}
+                />
               </Container>
             )}
 

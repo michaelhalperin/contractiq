@@ -20,7 +20,14 @@ import {
   DialogContentText,
   DialogActions,
 } from "@mui/material";
-import { CheckCircle, Star, TrendingUp, Check, Warning } from "@mui/icons-material";
+import {
+  CheckCircle,
+  Star,
+  TrendingUp,
+  Check,
+  Warning,
+  ArrowBack,
+} from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { PLAN_LIMITS } from "../../../shared/types";
 import { useAuthStore } from "../store/authStore";
@@ -34,14 +41,20 @@ const PricingPage = () => {
   const { isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<{ plan: "free" | "pro" | "business"; name: string } | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<{
+    plan: "free" | "pro" | "business";
+    name: string;
+  } | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
   // Fetch subscription status to get period end date
   const { data: subscriptionStatus } = useQuery({
-    queryKey: ['subscription-status'],
+    queryKey: ["subscription-status"],
     queryFn: subscriptionService.getStatus,
-    enabled: isAuthenticated && user?.subscriptionStatus === 'active' && user?.subscriptionPlan !== 'free',
+    enabled:
+      isAuthenticated &&
+      user?.subscriptionStatus === "active" &&
+      user?.subscriptionPlan !== "free",
   });
 
   const handleSubscribe = (plan: "pro" | "business") => {
@@ -139,32 +152,62 @@ const PricingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Box sx={{ textAlign: "center", mb: { xs: 4, md: 5 } }}>
-              <Typography
-                variant="h3"
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                mb: { xs: 3, md: 4 },
+                position: "relative",
+              }}
+            >
+              <Button
+                startIcon={<ArrowBack />}
+                onClick={() => {
+                  if (isAuthenticated) {
+                    navigate("/dashboard");
+                  } else {
+                    navigate(-1);
+                  }
+                }}
                 sx={{
-                  mb: 1,
-                  fontWeight: 800,
-                  fontSize: { xs: "1.75rem", md: "2.5rem" },
-                  background:
-                    "linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  color: "text.secondary",
+                  position: "absolute",
+                  left: 0,
+                  "&:hover": {
+                    background: "rgba(99, 102, 241, 0.1)",
+                    color: "primary.main",
+                  },
                 }}
               >
-                Simple, Transparent Pricing
-              </Typography>
-              <Typography
-                variant="body1"
-                color="text.secondary"
-                sx={{
-                  maxWidth: 600,
-                  mx: "auto",
-                  fontSize: { xs: "0.875rem", md: "1rem" },
-                }}
-              >
-                Choose the plan that's right for you
-              </Typography>
+                Back
+              </Button>
+              <Box sx={{ flex: 1, textAlign: "center" }}>
+                <Typography
+                  variant="h3"
+                  sx={{
+                    mb: 1,
+                    fontWeight: 800,
+                    fontSize: { xs: "1.75rem", md: "2.5rem" },
+                    background:
+                      "linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  Simple, Transparent Pricing
+                </Typography>
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{
+                    maxWidth: 600,
+                    mx: "auto",
+                    fontSize: { xs: "0.875rem", md: "1rem" },
+                  }}
+                >
+                  Choose the plan that's right for you
+                </Typography>
+              </Box>
             </Box>
           </motion.div>
 
@@ -172,12 +215,17 @@ const PricingPage = () => {
             {plans.map((plan, index) => {
               const limits = PLAN_LIMITS[plan.plan];
               const isCurrentPlan = user?.subscriptionPlan === plan.plan;
-              const isDowngrade = user && (
-                (user.subscriptionPlan === 'business' && plan.plan === 'pro') ||
-                (user.subscriptionPlan === 'business' && plan.plan === 'free') ||
-                (user.subscriptionPlan === 'pro' && plan.plan === 'free')
-              );
-              const isGoingToFree = user && plan.plan === 'free' && user.subscriptionPlan !== 'free';
+              const isDowngrade =
+                user &&
+                ((user.subscriptionPlan === "business" &&
+                  plan.plan === "pro") ||
+                  (user.subscriptionPlan === "business" &&
+                    plan.plan === "free") ||
+                  (user.subscriptionPlan === "pro" && plan.plan === "free"));
+              const isGoingToFree =
+                user &&
+                plan.plan === "free" &&
+                user.subscriptionPlan !== "free";
               return (
                 <Grid item xs={12} sm={6} md={4} key={plan.name}>
                   <motion.div
@@ -411,13 +459,16 @@ const PricingPage = () => {
                             onClick={() => {
                               if (isAuthenticated) {
                                 if (isGoingToFree) {
-                                  setSelectedPlan({ plan: 'free', name: 'Free' });
+                                  setSelectedPlan({
+                                    plan: "free",
+                                    name: "Free",
+                                  });
                                   setDowngradeModalOpen(true);
                                 } else {
-                                  navigate('/dashboard');
+                                  navigate("/dashboard");
                                 }
                               } else {
-                                navigate('/register');
+                                navigate("/register");
                               }
                             }}
                             variant={plan.popular ? "contained" : "outlined"}
@@ -432,45 +483,55 @@ const PricingPage = () => {
                           <Button
                             onClick={() => {
                               if (isDowngrade) {
-                                setSelectedPlan({ plan: plan.plan, name: plan.name });
+                                setSelectedPlan({
+                                  plan: plan.plan,
+                                  name: plan.name,
+                                });
                                 setDowngradeModalOpen(true);
                               } else {
-                                handleSubscribe(plan.plan as "pro" | "business");
+                                handleSubscribe(
+                                  plan.plan as "pro" | "business"
+                                );
                               }
                             }}
-                            variant={plan.popular && !isCurrentPlan ? "contained" : "outlined"}
+                            variant={
+                              plan.popular && !isCurrentPlan
+                                ? "contained"
+                                : "outlined"
+                            }
                             fullWidth
                             size="small"
-                            sx={{ 
-                              mt: "auto", 
-                              py: 1, 
+                            sx={{
+                              mt: "auto",
+                              py: 1,
                               fontSize: "0.875rem",
                               ...(isCurrentPlan && {
-                                background: 'rgba(99, 102, 241, 0.1)',
-                                borderColor: 'rgba(99, 102, 241, 0.3)',
-                                color: 'primary.main',
-                                '&:hover': {
-                                  background: 'rgba(99, 102, 241, 0.15)',
+                                background: "rgba(99, 102, 241, 0.1)",
+                                borderColor: "rgba(99, 102, 241, 0.3)",
+                                color: "primary.main",
+                                "&:hover": {
+                                  background: "rgba(99, 102, 241, 0.15)",
                                 },
                               }),
-                              ...(isDowngrade && !isCurrentPlan && {
-                                borderColor: 'rgba(148, 163, 184, 0.3)',
-                                color: 'text.secondary',
-                                background: 'rgba(148, 163, 184, 0.05)',
-                                '&:hover': {
-                                  background: 'rgba(148, 163, 184, 0.1)',
-                                  borderColor: 'rgba(148, 163, 184, 0.4)',
-                                  color: 'text.primary',
-                                },
-                              }),
+                              ...(isDowngrade &&
+                                !isCurrentPlan && {
+                                  borderColor: "rgba(148, 163, 184, 0.3)",
+                                  color: "text.secondary",
+                                  background: "rgba(148, 163, 184, 0.05)",
+                                  "&:hover": {
+                                    background: "rgba(148, 163, 184, 0.1)",
+                                    borderColor: "rgba(148, 163, 184, 0.4)",
+                                    color: "text.primary",
+                                  },
+                                }),
                             }}
                             disabled={!isPaddleLoaded() || isCurrentPlan}
                             startIcon={isCurrentPlan ? <Check /> : undefined}
                           >
-                            {isCurrentPlan 
-                              ? "Current Plan" 
-                              : isDowngrade 
-                              ? "Downgrade" 
+                            {isCurrentPlan
+                              ? "Current Plan"
+                              : isDowngrade
+                              ? "Downgrade"
                               : "Subscribe"}
                           </Button>
                         )}
@@ -530,9 +591,9 @@ const PricingPage = () => {
         }}
         PaperProps={{
           sx: {
-            background: 'rgba(15, 23, 42, 0.95)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(148, 163, 184, 0.15)',
+            background: "rgba(15, 23, 42, 0.95)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(148, 163, 184, 0.15)",
             borderRadius: 3,
             maxWidth: 500,
           },
@@ -540,10 +601,10 @@ const PricingPage = () => {
       >
         <DialogTitle
           sx={{
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             gap: 2,
-            color: 'text.primary',
+            color: "text.primary",
             fontWeight: 700,
             pb: 2,
           }}
@@ -553,62 +614,86 @@ const PricingPage = () => {
               width: 40,
               height: 40,
               borderRadius: 2,
-              background: 'rgba(245, 158, 11, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              background: "rgba(245, 158, 11, 0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            <Warning sx={{ color: '#f59e0b', fontSize: 24 }} />
+            <Warning sx={{ color: "#f59e0b", fontSize: 24 }} />
           </Box>
           Confirm Plan Change
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: 'text.secondary', mb: 2, lineHeight: 1.7 }}>
-            {selectedPlan?.plan === 'free' 
-              ? 'Are you sure you want to switch to the Free plan?'
+          <DialogContentText
+            sx={{ color: "text.secondary", mb: 2, lineHeight: 1.7 }}
+          >
+            {selectedPlan?.plan === "free"
+              ? "Are you sure you want to switch to the Free plan?"
               : `Are you sure you want to downgrade to the ${selectedPlan?.name} plan?`}
           </DialogContentText>
           {subscriptionStatus?.subscription?.currentPeriodEnd && (
             <Box
               sx={{
                 p: 2,
-                background: 'rgba(99, 102, 241, 0.1)',
-                border: '1px solid rgba(99, 102, 241, 0.2)',
+                background: "rgba(99, 102, 241, 0.1)",
+                border: "1px solid rgba(99, 102, 241, 0.2)",
                 borderRadius: 2,
                 mb: 2,
               }}
             >
-              <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600, mb: 0.5 }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "primary.main", fontWeight: 600, mb: 0.5 }}
+              >
                 Your subscription will continue until:
               </Typography>
-              <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-                {new Date(subscriptionStatus.subscription.currentPeriodEnd).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
+              <Typography
+                variant="body2"
+                color="text.primary"
+                sx={{ fontWeight: 500 }}
+              >
+                {new Date(
+                  subscriptionStatus.subscription.currentPeriodEnd
+                ).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                You'll have full access to all features until then. After that, your plan will switch to {selectedPlan?.name}.
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, display: "block" }}
+              >
+                You'll have full access to all features until then. After that,
+                your plan will switch to {selectedPlan?.name}.
               </Typography>
             </Box>
           )}
           <Box
             sx={{
               p: 2,
-              background: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.2)',
+              background: "rgba(245, 158, 11, 0.1)",
+              border: "1px solid rgba(245, 158, 11, 0.2)",
               borderRadius: 2,
               mb: 2,
             }}
           >
-            <Typography variant="body2" sx={{ color: '#f59e0b', fontWeight: 600, mb: 1 }}>
+            <Typography
+              variant="body2"
+              sx={{ color: "#f59e0b", fontWeight: 600, mb: 1 }}
+            >
               You may lose access to:
             </Typography>
-            <Typography variant="body2" color="text.secondary" component="ul" sx={{ pl: 2, m: 0 }}>
-              {selectedPlan?.plan === 'free' ? (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              component="ul"
+              sx={{ pl: 2, m: 0 }}
+            >
+              {selectedPlan?.plan === "free" ? (
                 <>
                   <li>All premium features</li>
                   <li>Advanced export formats</li>
@@ -616,7 +701,7 @@ const PricingPage = () => {
                   <li>Analytics dashboard</li>
                   <li>Custom notifications</li>
                 </>
-              ) : selectedPlan?.plan === 'pro' ? (
+              ) : selectedPlan?.plan === "pro" ? (
                 <>
                   <li>Bulk contract processing</li>
                   <li>Advanced analytics dashboard</li>
@@ -633,8 +718,11 @@ const PricingPage = () => {
               )}
             </Typography>
           </Box>
-          <DialogContentText sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
-            This action cannot be undone. Your subscription will be updated immediately.
+          <DialogContentText
+            sx={{ color: "text.secondary", fontSize: "0.875rem" }}
+          >
+            This action cannot be undone. Your subscription will be updated
+            immediately.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 2 }}>
@@ -644,9 +732,9 @@ const PricingPage = () => {
               setSelectedPlan(null);
             }}
             sx={{
-              color: 'text.secondary',
-              '&:hover': {
-                background: 'rgba(148, 163, 184, 0.1)',
+              color: "text.secondary",
+              "&:hover": {
+                background: "rgba(148, 163, 184, 0.1)",
               },
             }}
           >
@@ -654,19 +742,24 @@ const PricingPage = () => {
           </Button>
           <Button
             onClick={async () => {
-              if (selectedPlan?.plan === 'free') {
+              if (selectedPlan?.plan === "free") {
                 // Cancel subscription at period end
                 setIsCancelling(true);
                 try {
                   await subscriptionService.cancelAtPeriodEnd();
-                  toast.success('Subscription will be cancelled at the end of your billing period');
+                  toast.success(
+                    "Subscription will be cancelled at the end of your billing period"
+                  );
                   setDowngradeModalOpen(false);
                   setSelectedPlan(null);
                   setTimeout(() => {
-                    window.location.href = '/dashboard';
+                    window.location.href = "/dashboard";
                   }, 1500);
                 } catch (error: any) {
-                  toast.error(error.response?.data?.error || 'Failed to cancel subscription');
+                  toast.error(
+                    error.response?.data?.error ||
+                      "Failed to cancel subscription"
+                  );
                 } finally {
                   setIsCancelling(false);
                 }
@@ -679,18 +772,20 @@ const PricingPage = () => {
             disabled={isCancelling}
             variant="contained"
             sx={{
-              background: selectedPlan?.plan === 'free' 
-                ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
-                : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-              '&:hover': {
-                background: selectedPlan?.plan === 'free'
-                  ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)'
-                  : 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+              background:
+                selectedPlan?.plan === "free"
+                  ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                  : "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+              "&:hover": {
+                background:
+                  selectedPlan?.plan === "free"
+                    ? "linear-gradient(135deg, #d97706 0%, #b45309 100%)"
+                    : "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
               },
             }}
             startIcon={<Warning />}
           >
-            Confirm {selectedPlan?.plan === 'free' ? 'Switch' : 'Downgrade'}
+            Confirm {selectedPlan?.plan === "free" ? "Switch" : "Downgrade"}
           </Button>
         </DialogActions>
       </Dialog>
