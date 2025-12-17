@@ -54,12 +54,15 @@ import { contractService } from "../services/contract.service";
 import { useQuery } from "@tanstack/react-query";
 import UploadZone from "../components/UploadZone";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
+import { LanguageSelector } from "../components/LanguageSelector";
+import { useTranslation } from "../utils/i18n";
 import toast from "react-hot-toast";
 import { DashboardSkeleton } from "../components/LoadingSkeleton";
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const t = useTranslation();
   const [showUpload, setShowUpload] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -416,7 +419,7 @@ const DashboardPage = () => {
             >
               <Search sx={{ color: "text.secondary", mr: 1.5, fontSize: 20 }} />
               <InputBase
-                placeholder="Search contracts... (⌘K)"
+                placeholder={t("dashboard.searchContracts")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 sx={{
@@ -459,9 +462,12 @@ const DashboardPage = () => {
                   display: { xs: "none", md: "flex" },
                 }}
               >
-                Upgrade Plan
+                {t("dashboard.upgradePlan")}
               </Button>
             )}
+
+            {/* Language Selector */}
+            <LanguageSelector />
 
             {/* User Menu */}
             <IconButton
@@ -554,11 +560,11 @@ const DashboardPage = () => {
             <CreditCard sx={{ mr: 2, fontSize: 20, color: user?.subscriptionPlan === 'free' ? '#f59e0b' : 'inherit' }} />
             <Box sx={{ flex: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {user?.subscriptionPlan === 'free' ? 'Upgrade Plan' : 'Manage Subscription'}
+                {user?.subscriptionPlan === 'free' ? t('dashboard.upgradePlan') : t('dashboard.manageSubscription')}
               </Typography>
               {user?.subscriptionPlan === 'free' && (
                 <Typography variant="caption" sx={{ color: '#f59e0b', display: 'block' }}>
-                  Unlock premium features
+                  {t('dashboard.unlockPremium')}
                 </Typography>
               )}
             </Box>
@@ -573,7 +579,7 @@ const DashboardPage = () => {
             }}
           >
             <AccountCircle sx={{ mr: 2, fontSize: 20 }} />
-            Profile Settings
+            {t("auth.settings")}
           </MenuItem>
           <MenuItem
             onClick={() => {
@@ -583,7 +589,7 @@ const DashboardPage = () => {
             sx={{ color: "error.main" }}
           >
             <Logout sx={{ mr: 2, fontSize: 20 }} />
-            Sign Out
+            {t("auth.logout")}
           </MenuItem>
         </Menu>
       </Box>
@@ -608,7 +614,7 @@ const DashboardPage = () => {
                   }}
                 >
                   <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    Upload Contract
+                    {t("dashboard.uploadContract")}
                   </Typography>
                   <IconButton
                     onClick={() => {
@@ -642,11 +648,11 @@ const DashboardPage = () => {
               >
                 <Box>
                   <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                    Contracts
+                    {t("dashboard.myContracts")}
                   </Typography>
                 </Box>
                 <Stack direction="row" spacing={1.5}>
-                  <Tooltip title="Sort contracts">
+                  <Tooltip title={t("dashboard.sortContracts")}>
                     <Button
                       variant="outlined"
                       startIcon={<Sort />}
@@ -677,7 +683,7 @@ const DashboardPage = () => {
                         },
                       }}
                     >
-                      Compare ({selectedContracts.size})
+                      {t("dashboard.compare")} ({selectedContracts.size})
                     </Button>
                   )}
                   {(user?.subscriptionPlan === 'business' || user?.subscriptionPlan === 'enterprise') && (
@@ -701,7 +707,7 @@ const DashboardPage = () => {
                       disabled={isBulkUploading}
                       size="small"
                     >
-                      {isBulkUploading ? 'Uploading...' : 'Bulk Upload'}
+                      {isBulkUploading ? t('dashboard.uploading') : t('dashboard.bulkUpload')}
                     </Button>
                   )}
                   <Button
@@ -710,7 +716,7 @@ const DashboardPage = () => {
                     onClick={() => setShowUpload(true)}
                     size="small"
                   >
-                    Upload
+                    {t('dashboard.upload')}
                   </Button>
                 </Stack>
               </Box>
@@ -724,17 +730,17 @@ const DashboardPage = () => {
                   borderColor: "rgba(148, 163, 184, 0.1)",
                 }}
               >
-                <Tab label={`All (${totalCount})`} value="all" />
+                <Tab label={`${t('dashboard.all')} (${totalCount})`} value="all" />
                 <Tab
-                  label={`Completed (${completedCount})`}
+                  label={`${t('dashboard.completed')} (${completedCount})`}
                   value="completed"
                 />
                 <Tab
-                  label={`Processing (${processingCount})`}
+                  label={`${t('dashboard.processing')} (${processingCount})`}
                   value="processing"
                 />
                 {(user?.subscriptionPlan === 'business' || user?.subscriptionPlan === 'enterprise') && (
-                  <Tab label="Analytics" value="analytics" />
+                  <Tab label={t('dashboard.analytics')} value="analytics" />
                 )}
               </Tabs>
             </Box>

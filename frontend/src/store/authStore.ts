@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { authService, type User } from '../services/auth.service';
+import { useLanguageStore } from './languageStore';
 
 interface AuthState {
   user: User | null;
@@ -20,6 +21,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const response = await authService.login({ email, password });
       set({ user: response.user, isAuthenticated: true, isLoading: false });
+      
+      // Initialize language from user preference
+      if (response.user.language) {
+        useLanguageStore.getState().initializeLanguage(response.user.language);
+      }
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -30,6 +36,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const response = await authService.register({ email, password, name });
       set({ user: response.user, isAuthenticated: true, isLoading: false });
+      
+      // Initialize language from user preference
+      if (response.user.language) {
+        useLanguageStore.getState().initializeLanguage(response.user.language);
+      }
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -51,6 +62,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const user = await authService.getCurrentUser();
       set({ user, isAuthenticated: true, isLoading: false });
+      
+      // Initialize language from user preference
+      if (user.language) {
+        useLanguageStore.getState().initializeLanguage(user.language);
+      }
     } catch (error) {
       localStorage.removeItem('token');
       set({ user: null, isAuthenticated: false, isLoading: false });

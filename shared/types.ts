@@ -73,6 +73,8 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
   }
 };
 
+export type Language = 'en' | 'he';
+
 export interface User {
   id: string;
   email: string;
@@ -80,6 +82,7 @@ export interface User {
   subscriptionPlan: SubscriptionPlan;
   subscriptionStatus: 'active' | 'cancelled' | 'past_due' | 'trialing';
   contractsUsedThisMonth: number;
+  language?: Language;
   createdAt: string;
   updatedAt: string;
 }

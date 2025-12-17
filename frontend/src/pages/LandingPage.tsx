@@ -41,10 +41,13 @@ import {
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "../store/authStore";
+import { LanguageSelector } from "../components/LanguageSelector";
+import { useTranslation } from "../utils/i18n";
 import SEOHead from "../components/SEOHead";
 
 const LandingPage = () => {
   const { isAuthenticated } = useAuthStore();
+  const t = useTranslation();
   const [isNavbarVisible, setIsNavbarVisible] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(
@@ -94,60 +97,54 @@ const LandingPage = () => {
   };
 
   const capabilities = [
-    { label: "Unlimited Contracts", icon: <Article /> },
-    { label: "PDF, DOCX, TXT", icon: <Description /> },
-    { label: "AI Analysis", icon: <AutoAwesome /> },
-    { label: "Risk Detection", icon: <Security /> },
+    { label: t("landing.capabilityUnlimited"), icon: <Article /> },
+    { label: t("landing.capabilityFormats"), icon: <Description /> },
+    { label: t("landing.capabilityAI"), icon: <AutoAwesome /> },
+    { label: t("landing.capabilityRisk"), icon: <Security /> },
   ];
 
   const features = [
     {
       icon: <AutoAwesome sx={{ fontSize: 40 }} />,
-      title: "AI-Powered Analysis",
-      description:
-        "Advanced AI technology analyzes your contracts in seconds, extracting key information and identifying potential issues.",
+      title: t("landing.featureAITitle"),
+      description: t("landing.featureAIDesc"),
       color: "#6366f1",
-      badge: "Core Feature",
+      badge: t("landing.featureAIBadge"),
     },
     {
       icon: <Security sx={{ fontSize: 40 }} />,
-      title: "Risk Detection",
-      description:
-        "Automatically flags red flags like non-compete clauses, auto-renewal terms, and liability issues before you sign.",
+      title: t("landing.featureRiskTitle"),
+      description: t("landing.featureRiskDesc"),
       color: "#ec4899",
-      badge: "Smart Alerts",
+      badge: t("landing.featureRiskBadge"),
     },
     {
       icon: <Language sx={{ fontSize: 40 }} />,
-      title: "Plain English Summaries",
-      description:
-        "Complex legal jargon translated into clear, understandable language so you know exactly what you're agreeing to.",
+      title: t("landing.featurePlainTitle"),
+      description: t("landing.featurePlainDesc"),
       color: "#10b981",
-      badge: "Easy to Understand",
+      badge: t("landing.featurePlainBadge"),
     },
     {
       icon: <Speed sx={{ fontSize: 40 }} />,
-      title: "Lightning Fast",
-      description:
-        "Get comprehensive contract analysis in under 60 seconds. No waiting, no delays, just instant insights.",
+      title: t("landing.featureFastTitle"),
+      description: t("landing.featureFastDesc"),
       color: "#3b82f6",
-      badge: "60s Average",
+      badge: t("landing.featureFastBadge"),
     },
     {
       icon: <Insights sx={{ fontSize: 40 }} />,
-      title: "Detailed Insights",
-      description:
-        "Every legal term and clause explained in detail, helping you understand the fine print without a law degree.",
+      title: t("landing.featureInsightsTitle"),
+      description: t("landing.featureInsightsDesc"),
       color: "#f59e0b",
-      badge: "Comprehensive",
+      badge: t("landing.featureInsightsBadge"),
     },
     {
       icon: <Shield sx={{ fontSize: 40 }} />,
-      title: "Secure & Private",
-      description:
-        "Your contracts are encrypted and stored securely. We never share your data with third parties.",
+      title: t("landing.featureSecureTitle"),
+      description: t("landing.featureSecureDesc"),
       color: "#8b5cf6",
-      badge: "Enterprise Grade",
+      badge: t("landing.featureSecureBadge"),
     },
   ];
 
@@ -490,9 +487,9 @@ const LandingPage = () => {
                         }}
                       >
                         {[
-                          { id: "features", label: "Features" },
-                          { id: "pricing", label: "Pricing", isLink: true },
-                          { id: "how-it-works", label: "How It Works" },
+                          { id: "features", label: t("landing.features") },
+                          { id: "pricing", label: t("landing.pricing"), isLink: true },
+                          { id: "how-it-works", label: t("landing.howItWorks") },
                         ].map((item) => {
                           const isActive = activeSection === item.id;
                           const NavButton = item.isLink ? (
@@ -585,6 +582,7 @@ const LandingPage = () => {
                         spacing={1.5}
                         sx={{ alignItems: "center" }}
                       >
+                        <LanguageSelector />
                         <Button
                           component={Link}
                           to="/login"
@@ -603,7 +601,7 @@ const LandingPage = () => {
                             transition: "all 0.2s ease",
                           }}
                         >
-                          Login
+                          {t("auth.login")}
                         </Button>
                         <motion.div
                           whileHover={{ scale: 1.05 }}
@@ -633,7 +631,7 @@ const LandingPage = () => {
                               transition: "all 0.3s ease",
                             }}
                           >
-                            Get Started
+                            {t("landing.getStarted")}
                           </Button>
                         </motion.div>
 
@@ -705,7 +703,7 @@ const LandingPage = () => {
             },
           }}
         >
-          Features
+          {t("landing.features")}
         </MenuItem>
         <MenuItem
           component={Link}
@@ -721,7 +719,7 @@ const LandingPage = () => {
             },
           }}
         >
-          Pricing
+          {t("landing.pricing")}
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -736,7 +734,7 @@ const LandingPage = () => {
             },
           }}
         >
-          How It Works
+          {t("landing.howItWorks")}
         </MenuItem>
         <MenuItem
           component={Link}
@@ -752,7 +750,7 @@ const LandingPage = () => {
             },
           }}
         >
-          Login
+          {t("auth.login")}
         </MenuItem>
         <MenuItem
           component={Link}
@@ -768,7 +766,7 @@ const LandingPage = () => {
             },
           }}
         >
-          Sign Up
+          {t("auth.register")}
         </MenuItem>
       </Menu>
 
@@ -881,7 +879,7 @@ const LandingPage = () => {
             <Box sx={{ textAlign: "center", mb: 3 }}>
               <Chip
                 icon={<Star sx={{ color: "#fbbf24" }} />}
-                label="Loved by 10,000+ Users"
+                label={t("landing.lovedByUsers")}
                 sx={{
                   background: "rgba(15, 23, 42, 0.6)",
                   border: "1px solid rgba(99, 102, 241, 0.3)",
@@ -924,8 +922,8 @@ const LandingPage = () => {
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
                 }}
-              >
-                Answers You Can Trust.
+                >
+                {t("landing.heroTitle1")}
                 <br />
                 <Box
                   component="span"
@@ -949,7 +947,7 @@ const LandingPage = () => {
                     },
                   }}
                 >
-                  Sources You Can See.
+                  {t("landing.heroTitle2")}
                   <Box
                     component={motion.span}
                     animate={{
@@ -994,7 +992,7 @@ const LandingPage = () => {
                   fontWeight: 400,
                 }}
               >
-                AI-powered contract analysis that saves you time and money.
+                {t("landing.heroSubtitle1")}
                 <br />
                 <Box
                   component="span"
@@ -1003,8 +1001,7 @@ const LandingPage = () => {
                     fontWeight: 600,
                   }}
                 >
-                  Understand any contract in plain English—no legal degree
-                  required.
+                  {t("landing.heroSubtitle2")}
                 </Box>
               </Typography>
             </motion.div>
@@ -1061,9 +1058,9 @@ const LandingPage = () => {
               }}
             >
               {[
-                { value: "60s", label: "Average Analysis Time" },
-                { value: "10K+", label: "Contracts Analyzed" },
-                { value: "99.9%", label: "Uptime" },
+                { value: "60s", label: t("landing.statTime") },
+                { value: "10K+", label: t("landing.statContracts") },
+                { value: "99.9%", label: t("landing.statUptime") },
               ].map((stat, index) => (
                 <Box
                   key={index}
@@ -2247,7 +2244,7 @@ const LandingPage = () => {
                     },
                   }}
                 >
-                  Pricing
+                  {t("landing.pricing")}
                 </Button>
                 <Button
                   component={Link}
@@ -2264,7 +2261,7 @@ const LandingPage = () => {
                     },
                   }}
                 >
-                  Features
+                  {t("landing.features")}
                 </Button>
               </Stack>
             </Grid>
@@ -2293,7 +2290,7 @@ const LandingPage = () => {
                     },
                   }}
                 >
-                  Privacy
+                  {t("footer.privacy")}
                 </Button>
                 <Button
                   component={Link}
@@ -2310,7 +2307,7 @@ const LandingPage = () => {
                     },
                   }}
                 >
-                  Terms
+                  {t("footer.terms")}
                 </Button>
                 <Button
                   component={Link}
@@ -2327,7 +2324,7 @@ const LandingPage = () => {
                     },
                   }}
                 >
-                  Contact
+                  {t("footer.contact")}
                 </Button>
               </Stack>
             </Grid>
@@ -2419,7 +2416,7 @@ const LandingPage = () => {
               color="text.secondary"
               sx={{ fontSize: "0.8125rem" }}
             >
-              © {new Date().getFullYear()} ContractIQ. All rights reserved.
+              {t("footer.copyright").replace('2024', new Date().getFullYear().toString())}
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography

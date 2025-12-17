@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { ContractAnalysis, RiskFlag, ClauseExplanation, SubscriptionPlan } from '../../../shared/types.js';
+import type { ContractAnalysis, RiskFlag, ClauseExplanation, SubscriptionPlan, Language } from '../../../shared/types.js';
 
 // Lazy initialization of OpenAI client
 let openai: OpenAI | null = null;
@@ -17,7 +17,7 @@ const getOpenAIClient = (): OpenAI => {
   return openai;
 };
 
-export const analyzeContract = async (contractText: string, plan: SubscriptionPlan = 'free'): Promise<ContractAnalysis> => {
+export const analyzeContract = async (contractText: string, plan: SubscriptionPlan = 'free', language: Language = 'en'): Promise<ContractAnalysis> => {
   try {
     const isPremium = plan === 'business' || plan === 'enterprise';
     const isAdvanced = plan === 'pro' || isPremium;
@@ -27,7 +27,11 @@ export const analyzeContract = async (contractText: string, plan: SubscriptionPl
     const contractTextSnippet = contractText.substring(0, maxTextLength);
 
     // Step 1: Extract comprehensive structured data
-    const structurePrompt = `Perform a comprehensive analysis of the following contract. Extract ALL available information and return a JSON object with the following structure:
+    const languageInstruction = language === 'he' 
+      ? 'כל התגובות וההסברים חייבים להיות בעברית. החזר את כל הטקסטים בעברית.'
+      : 'All responses and explanations must be in English. Return all text in English.';
+    
+    const structurePrompt = `Perform a comprehensive analysis of the following contract. ${languageInstruction} Extract ALL available information and return a JSON object with the following structure:
 
 {
   "keyParties": { "party1": string, "party2": string },
@@ -142,7 +146,8 @@ ${contractTextSnippet}`;
       ? 'Include key dates, financial terms, and main obligations. Mention any important clauses.'
       : 'Focus on what the contract is about, who the parties are, what they\'re agreeing to, and the main terms.';
 
-    const summaryPrompt = `Summarize the following contract in clear, plain English (${summaryLength}). ${summaryDetail}
+    const summaryLanguage = language === 'he' ? 'Hebrew' : 'English';
+    const summaryPrompt = `Summarize the following contract in clear, plain ${summaryLanguage} (${summaryLength}). ${summaryDetail} ${languageInstruction}
 
 Contract text:
 ${contractTextSnippet}`;
@@ -162,10 +167,10 @@ ${contractTextSnippet}`;
     const summary = summaryResponse.choices[0].message.content || '';
 
     // Step 3: Detect risks (with depth based on plan)
-    const risks = await detectRisks(contractTextSnippet, plan);
+    const risks = await detectRisks(contractTextSnippet, plan, language);
 
     // Step 4: Explain clauses (with depth based on plan)
-    const explanations = await explainClauses(contractTextSnippet, plan);
+    const explanations = await explainClauses(contractTextSnippet, plan, language);
 
     return {
       summary,
@@ -193,7 +198,7 @@ ${contractTextSnippet}`;
   }
 };
 
-const detectRisks = async (contractText: string, plan: SubscriptionPlan = 'free'): Promise<RiskFlag[]> => {
+const detectRisks = async (contractText: string, plan: SubscriptionPlan = 'free', language: Language = 'en'): Promise<RiskFlag[]> => {
   const isPremium = plan === 'business' || plan === 'enterprise';
   const isAdvanced = plan === 'pro' || isPremium;
 
@@ -249,7 +254,13 @@ For each risk found, provide:
 - clauseText: the actual clause text
 - suggestion: optional recommendation`;
 
+  const languageInstruction = language === 'he' 
+    ? 'כל התגובות חייבות להיות בעברית. החזר את כל הטקסטים בעברית.'
+    : 'All responses must be in English. Return all text in English.';
+
   const riskPrompt = `${riskDetail}
+
+${languageInstruction}
 
 Return as JSON array of risk objects.
 
@@ -284,7 +295,7 @@ ${contractText}`;
   }
 };
 
-const explainClauses = async (contractText: string, plan: SubscriptionPlan = 'free'): Promise<ClauseExplanation[]> => {
+const explainClauses = async (contractText: string, plan: SubscriptionPlan = 'free', language: Language = 'en'): Promise<ClauseExplanation[]> => {
   const isPremium = plan === 'business' || plan === 'enterprise';
   const isAdvanced = plan === 'pro' || isPremium;
 
@@ -324,7 +335,13 @@ Focus on the most important clauses that affect the parties' rights and obligati
 - explanation: plain English explanation
 - importance: "critical", "important", or "standard"`;
 
+  const languageInstruction = language === 'he' 
+    ? 'כל התגובות חייבות להיות בעברית. החזר את כל הטקסטים בעברית.'
+    : 'All responses must be in English. Return all text in English.';
+
   const explanationPrompt = `${clauseDetail}
+
+${languageInstruction}
 
 Return as JSON array of clause objects.
 

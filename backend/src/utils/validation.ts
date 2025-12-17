@@ -16,6 +16,7 @@ export const updateProfileSchema = z.object({
   email: z.string().email('Invalid email address').optional(),
   password: z.string().min(6, 'Password must be at least 6 characters').optional(),
   currentPassword: z.string().optional(),
+  language: z.enum(['en', 'he']).optional(),
 }).refine((data) => {
   // If password is provided, currentPassword is required
   if (data.password && !data.currentPassword) {

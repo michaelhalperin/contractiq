@@ -15,6 +15,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { useTranslation } from '../utils/i18n';
 import toast from 'react-hot-toast';
 import SEOHead from '../components/SEOHead';
 
@@ -34,6 +36,7 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const { register: registerUser } = useAuthStore();
   const [error, setError] = useState<string>('');
+  const t = useTranslation();
 
   const {
     register,
@@ -47,11 +50,11 @@ const RegisterPage = () => {
     try {
       setError('');
       await registerUser(data.email, data.password, data.name);
-      toast.success('Account created successfully!');
+      toast.success(t('auth.accountCreated'));
       navigate('/dashboard');
     } catch (err: unknown) {
       // Extract error message from axios error response
-      let errorMessage = 'Registration failed';
+      let errorMessage = t('common.error');
       
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { response?: { data?: { error?: string } } };
@@ -113,21 +116,23 @@ const RegisterPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => navigate('/')}
-            sx={{
-              mb: 3,
-              color: 'text.secondary',
-              textTransform: 'none',
-              '&:hover': {
-                color: 'primary.main',
-                background: 'rgba(99, 102, 241, 0.1)',
-              },
-            }}
-          >
-            Back to Home
-          </Button>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Button
+              startIcon={<ArrowBack />}
+              onClick={() => navigate('/')}
+              sx={{
+                color: 'text.secondary',
+                textTransform: 'none',
+                '&:hover': {
+                  color: 'primary.main',
+                  background: 'rgba(99, 102, 241, 0.1)',
+                },
+              }}
+            >
+              {t('common.backToHome')}
+            </Button>
+            <LanguageSelector />
+          </Box>
           <Paper
             elevation={0}
             sx={{
@@ -171,7 +176,7 @@ const RegisterPage = () => {
                 ContractIQ
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Create your account
+                {t('auth.createAccount')}
               </Typography>
             </Box>
 
@@ -184,7 +189,7 @@ const RegisterPage = () => {
             <form onSubmit={handleSubmit(onSubmit)}>
               <TextField
                 {...register('name')}
-                label="Name (Optional)"
+                label={t('auth.nameOptional')}
                 fullWidth
                 margin="normal"
                 error={!!errors.name}
@@ -194,7 +199,7 @@ const RegisterPage = () => {
               />
               <TextField
                 {...register('email')}
-                label="Email"
+                label={t('auth.email')}
                 type="email"
                 fullWidth
                 margin="normal"
@@ -205,7 +210,7 @@ const RegisterPage = () => {
               />
               <TextField
                 {...register('password')}
-                label="Password"
+                label={t('auth.password')}
                 type="password"
                 fullWidth
                 margin="normal"
@@ -216,7 +221,7 @@ const RegisterPage = () => {
               />
               <TextField
                 {...register('confirmPassword')}
-                label="Confirm Password"
+                label={t('auth.confirmPassword')}
                 type="password"
                 fullWidth
                 margin="normal"
@@ -233,12 +238,12 @@ const RegisterPage = () => {
                 disabled={isSubmitting}
                 sx={{ mb: 3, py: 1.5 }}
               >
-                {isSubmitting ? 'Creating account...' : 'Sign Up'}
+                {isSubmitting ? t('auth.creatingAccount') : t('auth.signUpButton')}
               </Button>
             </form>
 
             <Typography variant="body2" align="center">
-              Already have an account?{' '}
+              {t('auth.alreadyHaveAccount')}{' '}
               <Link
                 to="/login"
                 style={{
@@ -247,7 +252,7 @@ const RegisterPage = () => {
                   fontWeight: 600,
                 }}
               >
-                Sign in
+                {t('auth.login')}
               </Link>
             </Typography>
           </Paper>

@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import type { SubscriptionPlan } from '../../../shared/types.js';
+import type { SubscriptionPlan, Language } from '../../../shared/types.js';
 
 export interface IUser extends Document {
   email: string;
@@ -12,6 +12,7 @@ export interface IUser extends Document {
   contractsUsedThisMonth: number;
   lastResetDate: Date;
   role: 'user' | 'admin';
+  language?: Language;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
   emailVerified: boolean;
@@ -72,6 +73,11 @@ const UserSchema = new Schema<IUser>(
       type: String,
       enum: ['user', 'admin'],
       default: 'user',
+    },
+    language: {
+      type: String,
+      enum: ['en', 'he'],
+      default: 'en',
     },
     passwordResetToken: {
       type: String,

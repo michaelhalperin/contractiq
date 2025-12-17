@@ -15,6 +15,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { useTranslation } from '../utils/i18n';
 import toast from 'react-hot-toast';
 import SEOHead from '../components/SEOHead';
 
@@ -29,6 +31,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
   const [error, setError] = useState<string>('');
+  const t = useTranslation();
 
   const {
     register,
@@ -42,11 +45,11 @@ const LoginPage = () => {
     try {
       setError('');
       await login(data.email, data.password);
-      toast.success('Welcome back!');
+      toast.success(t('auth.welcomeBack'));
       navigate('/dashboard');
     } catch (err: unknown) {
       // Extract error message from axios error response
-      let errorMessage = 'Login failed';
+      let errorMessage = t('auth.loginFailed');
       
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { response?: { data?: { error?: string } } };
@@ -108,21 +111,23 @@ const LoginPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => navigate('/')}
-            sx={{
-              mb: 3,
-              color: 'text.secondary',
-              textTransform: 'none',
-              '&:hover': {
-                color: 'primary.main',
-                background: 'rgba(99, 102, 241, 0.1)',
-              },
-            }}
-          >
-            Back to Home
-          </Button>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Button
+              startIcon={<ArrowBack />}
+              onClick={() => navigate('/')}
+              sx={{
+                color: 'text.secondary',
+                textTransform: 'none',
+                '&:hover': {
+                  color: 'primary.main',
+                  background: 'rgba(99, 102, 241, 0.1)',
+                },
+              }}
+            >
+              {t('common.backToHome')}
+            </Button>
+            <LanguageSelector />
+          </Box>
           <Paper
             elevation={0}
             sx={{
@@ -166,7 +171,7 @@ const LoginPage = () => {
                 ContractIQ
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Sign in to your account
+                {t('auth.signIn')}
               </Typography>
             </Box>
 
@@ -179,7 +184,7 @@ const LoginPage = () => {
             <form onSubmit={handleSubmit(onSubmit)}>
               <TextField
                 {...register('email')}
-                label="Email"
+                label={t('auth.email')}
                 type="email"
                 fullWidth
                 margin="normal"
@@ -190,7 +195,7 @@ const LoginPage = () => {
               />
               <TextField
                 {...register('password')}
-                label="Password"
+                label={t('auth.password')}
                 type="password"
                 fullWidth
                 margin="normal"
@@ -213,7 +218,7 @@ const LoginPage = () => {
                     },
                   }}
                 >
-                  Forgot Password?
+                  {t('auth.forgotPasswordQuestion')}
                 </Button>
               </Box>
               <Button
@@ -224,12 +229,12 @@ const LoginPage = () => {
                 disabled={isSubmitting}
                 sx={{ mb: 3, py: 1.5 }}
               >
-                {isSubmitting ? 'Signing in...' : 'Sign In'}
+                {isSubmitting ? t('auth.signingIn') : t('auth.signInButton')}
               </Button>
             </form>
 
             <Typography variant="body2" align="center">
-              Don't have an account?{' '}
+              {t('auth.noAccount')}{' '}
               <Link
                 to="/register"
                 style={{
@@ -238,7 +243,7 @@ const LoginPage = () => {
                   fontWeight: 600,
                 }}
               >
-                Sign up
+                {t('auth.signUp')}
               </Link>
             </Typography>
           </Paper>

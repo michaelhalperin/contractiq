@@ -11,6 +11,8 @@ export interface LoginData {
   password: string;
 }
 
+import type { Language } from '../../../shared/types';
+
 export interface User {
   id: string;
   email: string;
@@ -20,6 +22,7 @@ export interface User {
   contractsUsedThisMonth?: number;
   role?: string;
   emailVerified?: boolean;
+  language?: Language;
 }
 
 export interface AuthResponse {
@@ -49,7 +52,7 @@ export const authService = {
     return response.data;
   },
 
-  updateProfile: async (data: { name?: string; email?: string; password?: string; currentPassword?: string }): Promise<User> => {
+  updateProfile: async (data: { name?: string; email?: string; password?: string; currentPassword?: string; language?: Language }): Promise<User> => {
     const response = await api.patch<User>('/auth/profile', data);
     return response.data;
   },

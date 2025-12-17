@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import { theme } from "./theme/theme";
 import { useAuthStore } from "./store/authStore";
+import { useLanguageStore } from "./store/languageStore";
 import { initializePaddle } from "./services/paddle.service";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -36,11 +37,25 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { fetchUser, isLoading } = useAuthStore();
+  const { fetchUser, isLoading, user } = useAuthStore();
+  const { language, initializeLanguage } = useLanguageStore();
 
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
+
+  // Initialize language from user preference
+  useEffect(() => {
+    if (user?.language) {
+      initializeLanguage(user.language);
+    }
+  }, [user?.language, initializeLanguage]);
+
+  // Apply RTL/LTR direction based on language
+  useEffect(() => {
+    document.documentElement.dir = language === 'he' ? 'rtl' : 'ltr';
+    document.documentElement.lang = language;
+  }, [language]);
 
   useEffect(() => {
     // Initialize Paddle when the app loads

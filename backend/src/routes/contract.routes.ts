@@ -145,8 +145,8 @@ router.post(
         // Extract text from file
         const { text } = await extractTextFromFile(file.buffer, fileType);
 
-        // Analyze with AI (with plan-based depth)
-        const analysis = await analyzeContract(text, user.subscriptionPlan);
+        // Analyze with AI (with plan-based depth and user language)
+        const analysis = await analyzeContract(text, user.subscriptionPlan, user.language || 'en');
 
         // Save analysis
         contract.analysis = analysis;
@@ -600,7 +600,7 @@ router.post('/bulk-upload', authenticate, checkPlanLimits, upload.array('files',
 
         // Process asynchronously
         extractTextFromFile(file.buffer, fileType)
-          .then(({ text }) => analyzeContract(text, user.subscriptionPlan))
+          .then(({ text }) => analyzeContract(text, user.subscriptionPlan, user.language || 'en'))
           .then(analysis => {
             contract.analysis = analysis;
             contract.status = 'completed';

@@ -77,6 +77,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         subscriptionPlan: user.subscriptionPlan,
         subscriptionStatus: user.subscriptionStatus,
         emailVerified: user.emailVerified,
+        language: user.language,
       },
     });
   } catch (error) {
@@ -125,6 +126,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         subscriptionStatus: user.subscriptionStatus,
         contractsUsedThisMonth: user.contractsUsedThisMonth,
         emailVerified: user.emailVerified,
+        language: user.language,
       },
     });
   } catch (error) {
@@ -154,6 +156,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
       subscriptionStatus: user.subscriptionStatus,
       contractsUsedThisMonth: user.contractsUsedThisMonth,
       role: user.role,
+      language: user.language,
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -204,6 +207,11 @@ router.patch('/profile', authenticate, async (req: AuthRequest, res: Response): 
       user.password = hashedPassword;
     }
 
+    // Update language if provided
+    if (validatedData.language !== undefined) {
+      user.language = validatedData.language;
+    }
+
     await user.save();
 
     // Send email notifications (don't fail the request if emails fail)
@@ -228,6 +236,7 @@ router.patch('/profile', authenticate, async (req: AuthRequest, res: Response): 
       contractsUsedThisMonth: user.contractsUsedThisMonth,
       role: user.role,
       emailVerified: user.emailVerified,
+      language: user.language,
     });
   } catch (error) {
     if (error instanceof Error && error.name === 'ZodError') {
