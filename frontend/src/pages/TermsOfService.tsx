@@ -2,14 +2,30 @@ import { useEffect } from 'react';
 import { Box, Container, Typography, Paper, Stack, Divider } from '@mui/material';
 import { Gavel } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import SEOHead from '../components/SEOHead';
 
 const TermsOfService = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Terms of Service - ContractIQ",
+    "description": "ContractIQ Terms of Service. Read our terms and conditions for using our AI contract analysis platform.",
+    "url": "https://contractiq-ivory.vercel.app/terms"
+  };
+
   return (
-    <Box sx={{ minHeight: '100vh', background: '#0a0a0f', position: 'relative', py: { xs: 8, md: 12 } }}>
+    <>
+      <SEOHead
+        title="Terms of Service - ContractIQ"
+        description="ContractIQ Terms of Service. Read our terms and conditions for using our AI-powered contract analysis platform and services."
+        url="/terms"
+        structuredData={structuredData}
+      />
+      <Box sx={{ minHeight: '100vh', background: '#0a0a0f', position: 'relative', py: { xs: 8, md: 12 } }}>
       {/* Background gradient */}
       <Box
         sx={{
@@ -366,6 +382,7 @@ const TermsOfService = () => {
         </motion.div>
       </Container>
     </Box>
+    </>
   );
 };
 

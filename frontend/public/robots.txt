@@ -1,7 +1,39 @@
+# robots.txt for ContractIQ
+# Allow all search engines to crawl public pages
+
 User-agent: *
 Allow: /
+Allow: /pricing
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /login
+Allow: /register
+
+# Disallow private/protected pages
 Disallow: /dashboard
 Disallow: /admin
+Disallow: /contracts/
+Disallow: /profile
+Disallow: /compare
+Disallow: /forgot-password
+Disallow: /reset-password/
+Disallow: /verify-email/
 
-Sitemap: https://contractiq.com/sitemap.xml
+# Allow static assets
+Allow: /assets/
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.webp
+
+# Sitemap location
+Sitemap: https://contractiq-ivory.vercel.app/sitemap.xml
+
+# Crawl delay (optional, helps prevent server overload)
+Crawl-delay: 1
 

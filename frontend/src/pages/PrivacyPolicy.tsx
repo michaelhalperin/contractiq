@@ -2,14 +2,30 @@ import { useEffect } from 'react';
 import { Box, Container, Typography, Paper, Stack, Divider } from '@mui/material';
 import { PrivacyTip } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import SEOHead from '../components/SEOHead';
 
 const PrivacyPolicy = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Privacy Policy - ContractIQ",
+    "description": "ContractIQ Privacy Policy. Learn how we collect, use, and protect your personal information and contract data.",
+    "url": "https://contractiq-ivory.vercel.app/privacy"
+  };
+
   return (
-    <Box sx={{ minHeight: '100vh', background: '#0a0a0f', position: 'relative', py: { xs: 8, md: 12 } }}>
+    <>
+      <SEOHead
+        title="Privacy Policy - ContractIQ"
+        description="ContractIQ Privacy Policy. Learn how we collect, use, and protect your personal information and contract data with industry-standard security."
+        url="/privacy"
+        structuredData={structuredData}
+      />
+      <Box sx={{ minHeight: '100vh', background: '#0a0a0f', position: 'relative', py: { xs: 8, md: 12 } }}>
       {/* Background gradient */}
       <Box
         sx={{
@@ -295,6 +311,7 @@ const PrivacyPolicy = () => {
         </motion.div>
       </Container>
     </Box>
+    </>
   );
 };
 

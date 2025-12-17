@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
+import SEOHead from '../components/SEOHead';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -59,18 +60,34 @@ const LoginPage = () => {
     }
   };
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Login - ContractIQ",
+    "description": "Sign in to your ContractIQ account to access AI-powered contract analysis tools.",
+    "url": "https://contractiq-ivory.vercel.app/login"
+  };
+
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: '#0a0a0f',
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 4,
-      }}
-    >
+    <>
+      <SEOHead
+        title="Login - ContractIQ"
+        description="Sign in to your ContractIQ account to access AI-powered contract analysis, risk detection, and plain English summaries."
+        url="/login"
+        structuredData={structuredData}
+        noindex={true}
+      />
+      <Box
+        sx={{
+          minHeight: '100vh',
+          background: '#0a0a0f',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: 4,
+        }}
+      >
       {/* Background gradient */}
       <Box
         sx={{
@@ -228,6 +245,7 @@ const LoginPage = () => {
         </motion.div>
       </Container>
     </Box>
+    </>
   );
 };
 

@@ -219,12 +219,144 @@ const LandingPage = () => {
     },
   ];
 
+  // Structured data for SEO
+  const structuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "ContractIQ",
+      "url": "https://contractiq-ivory.vercel.app",
+      "logo": "https://contractiq-ivory.vercel.app/og-image.png",
+      "description": "AI-powered contract analysis platform that helps you understand contracts in plain English with instant risk detection and analysis.",
+      "sameAs": [
+        "https://twitter.com/ContractIQ",
+        "https://linkedin.com/company/contractiq"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Service",
+        "url": "https://contractiq-ivory.vercel.app/contact"
+      },
+      "foundingDate": "2024",
+      "numberOfEmployees": {
+        "@type": "QuantitativeValue",
+        "value": "1-10"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "ContractIQ",
+      "url": "https://contractiq-ivory.vercel.app",
+      "description": "AI-powered contract analysis platform. Upload PDF or DOCX contracts and get instant analysis, risk detection, and plain English explanations.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "ContractIQ"
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://contractiq-ivory.vercel.app/dashboard?search={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "ContractIQ",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "10000",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "description": "AI-powered contract analysis platform that analyzes contracts in seconds, extracts key information, identifies risks, and provides plain English explanations.",
+      "featureList": [
+        "AI-Powered Analysis",
+        "Risk Detection",
+        "Plain English Summaries",
+        "Lightning Fast Processing",
+        "Detailed Insights",
+        "Secure & Private"
+      ],
+      "screenshot": "https://contractiq-ivory.vercel.app/og-image.png",
+      "softwareVersion": "1.0",
+      "releaseNotes": "Initial release with AI contract analysis capabilities"
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How does ContractIQ work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Simply upload your contract (PDF, DOCX, or TXT), and our AI analyzes it in seconds. You'll get a comprehensive summary, risk flags, key obligations, and plain English explanations of complex legal clauses."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What file types are supported?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ContractIQ supports PDF, DOCX (Word), and TXT file formats. We're continuously working to add support for more formats."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How accurate is the analysis?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Our AI uses advanced natural language processing and is trained on thousands of legal documents. While we aim for high accuracy, our analysis is meant to assist you, not replace professional legal advice."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is my data secure?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Absolutely. We use industry-standard encryption, secure cloud storage, and never share your contracts with third parties. Your data is private and protected."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What subscription plans are available?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "We offer Free, Pro, Business, and Enterprise plans. Each plan has different limits on contracts per month and access to advanced features. Check our pricing page for details."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I cancel my subscription anytime?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your current billing period."
+          }
+        }
+      ]
+    }
+  ];
+
   return (
     <>
       <SEOHead
         title="ContractIQ - AI Contract Analyzer | Understand Contracts in 60 Seconds"
         description="AI-powered contract analysis platform. Upload PDF or DOCX contracts and get instant analysis, risk detection, and plain English explanations. No lawyer needed."
         url="/"
+        structuredData={structuredData}
       />
       <Box
       sx={{

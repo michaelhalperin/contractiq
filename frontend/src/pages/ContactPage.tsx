@@ -63,12 +63,32 @@ const ContactPage = () => {
     }
   };
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "name": "Contact Us - ContractIQ",
+    "description": "Get in touch with ContractIQ. We're here to help with any questions about our AI contract analysis platform.",
+    "url": "https://contractiq-ivory.vercel.app/contact",
+    "mainEntity": {
+      "@type": "Organization",
+      "name": "ContractIQ",
+      "email": "support@contractiq.com",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Service",
+        "email": "support@contractiq.com",
+        "availableLanguage": "English"
+      }
+    }
+  };
+
   return (
     <>
       <SEOHead
         title="Contact Us - ContractIQ"
         description="Get in touch with ContractIQ. We're here to help with any questions about our AI contract analysis platform."
         url="/contact"
+        structuredData={structuredData}
       />
       <Box
         sx={{
